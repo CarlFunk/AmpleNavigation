@@ -23,24 +23,65 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
     @Published internal var modalPresentation: NavigationModalPresentation<Screen>? = nil
     
     /// The upstream coordinator that created the current coordinator.
-    public weak var parent: NavigationCoordinator<Screen>?
+    internal weak var parent: NavigationCoordinator<Screen>?
+    
+    /// The downstream coordinator that was created by the current coordinator.
+    internal weak var child: NavigationCoordinator<Screen>?
+    
+    // MARK: - Initializers
     
     public init(
-        parent: NavigationCoordinator<Screen>? = nil,
-        navigationFlow: NavigationFlow<Screen>? = nil
+        parent: NavigationCoordinator<Screen>? = nil
     ) {
         self.parent = parent
+    }
+    
+    // MARK: - Internal
+    
+    internal func rootCoordinator() -> NavigationCoordinator<Screen> {
+        var root = self
+        
+        while root.parent != nil {
+            root = root.parent!
+        }
+        
+        return root
+    }
+    
+    internal func nextCoordinator(navigationFlow: NavigationFlow<Screen>? = nil) -> NavigationCoordinator<Screen> {
+        let coordinator = NavigationCoordinator(parent: self)
+        
+        child = coordinator
         
         NavigationDelay.perform { [weak self] in
             if let navigationFlow {
                 self?.navigate(to: navigationFlow)
             }
         }
+        
+        return coordinator
+    }
+    
+    // MARK: - Status
+    
+    /// Returns the status of whether a push navigation was performed by this coordinator.
+    public var hasNavigation: Bool {
+        !navigations.isEmpty
+    }
+    
+    /// Returns the status of whether a push navigation of a specific screen was performed by this coordinator.
+    public func hasNavigation(_ screen: Screen) -> Bool {
+        navigations.contains(where: { $0.screen == screen })
     }
     
     /// Returns the status of whether a modal presentation is in progress by this coordinator.
     public var isPresenting: Bool {
-        return modalPresentation != nil || sheetPresentation != nil
+        modalPresentation != nil || sheetPresentation != nil
+    }
+    
+    /// Returns the status of whether a modal presentation of the specific screen is in progress by this coordinator.
+    public func isPresenting(_ screen: Screen) -> Bool {
+        modalPresentation?.navigation.screen == screen || sheetPresentation?.navigation.screen == screen
     }
     
     // MARK: - Navigate Forward
@@ -100,38 +141,94 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
     
     // MARK: - Navigate Backward
     
-    /// Dismiss the last modal presentation.
-    public func dismissLast(_ completion: (() -> Void)? = nil) {
-        if isPresenting {
-            modalPresentation = nil
-            sheetPresentation = nil
-            NavigationDelay.perform {
-                completion?()
-            }
-        } else {
-            parent?.dismissLast()
-        }
-    }
-    
-    /// Remove all push navigations of the coordinator and display the original screen.
-    public func popAll() {
-        navigations = []
-    }
-    
-    /// Remove all navigations recursively until the very first screen of the application is displayed.
-    public func popToRoot(_ completion: (() -> Void)? = nil) {
-        var rootParent = parent
-        while rootParent?.parent != nil {
-            rootParent = rootParent?.parent
+    /// Dismiss the modal presentation of the current coordinator.
+    public func dismiss(_ completion: NavigationCompletion? = nil) {
+        guard isPresenting else {
+            completion?(.failure(.notCurrentlyPresenting))
+            return
         }
         
-        guard let rootParent else { return }
-        if rootParent.isPresenting {
-            rootParent.dismissLast { [weak rootParent] in
-                rootParent?.popAll()
+        modalPresentation = nil
+        sheetPresentation = nil
+        NavigationDelay.perform {
+            completion?(.success)
+        }
+    }
+    
+    /// Dismiss the last modal presentation.
+    public func dismissLast(_ completion: NavigationCompletion? = nil) {
+        if isPresenting {
+            dismiss(completion)
+        } else if let parent {
+            parent.dismissLast(completion)
+        } else {
+            completion?(.failure(.notCurrentlyPresenting))
+        }
+    }
+    
+    /// Dismiss the last push presentation.
+    public func popLast(_ completion: NavigationCompletion? = nil) {
+        if navigations.isEmpty {
+            completion?(.failure(.notCurrentlyNavigating))
+            return
+        }
+        
+        let _ = navigations.popLast()
+        NavigationDelay.perform {
+            completion?(.success)
+        }
+    }
+    
+    /// Dismiss all push navigations of the current coordinator until the root screen is displayed.
+    public func popAll(_ completion: NavigationCompletion? = nil) {
+        if navigations.isEmpty {
+            completion?(.failure(.notCurrentlyNavigating))
+            return
+        }
+        
+        navigations = []
+        NavigationDelay.perform {
+            completion?(.success)
+        }
+    }
+    
+    /// Dismiss all push navigations of the current coordinator until the desired screen is displayed.
+    public func popTo(screen: Screen, completion: NavigationCompletion? = nil) {
+        guard let unwindIndex = navigations.lastIndex(where: { $0.screen == screen }) else {
+            completion?(.failure(.screenNotFound))
+            return
+        }
+        
+        navigations.removeSubrange(unwindIndex...navigations.count)
+        NavigationDelay.perform {
+            completion?(.success)
+        }
+    }
+    
+    /// Remove all navigations such that the very first screen of the application is displayed.
+    public func unwindToRoot(_ completion: NavigationCompletion? = nil) {
+        let root = rootCoordinator()
+        
+        if root.isPresenting {
+            root.dismissLast { [weak root] _ in
+                root?.popAll(completion)
             }
         } else {
-            rootParent.popAll()
+            root.popAll(completion)
+        }
+    }
+    
+    /// Remove all navigations backwards until the screen requested in displayed.
+    public func unwindTo(screen: Screen, completion: NavigationCompletion? = nil) {
+        if hasNavigation(screen) {
+            popTo(screen: screen, completion: completion)
+        } else if let parent, parent.isPresenting(screen) {
+            popAll(completion)
+        } else if let parent {
+            parent.unwindTo(screen: screen, completion: completion)
+        } else {
+            // At the root and the desired screen was not found
+            completion?(.failure(.screenNotFound))
         }
     }
 }

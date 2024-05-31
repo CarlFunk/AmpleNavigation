@@ -34,9 +34,7 @@ internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, Scre
                 }
                 .sheet(item: $coordinator.sheetPresentation) { sheetPresentation in
                     ManagedNavigationCoordinatorView(
-                        coordinator: NavigationCoordinator(
-                            parent: coordinator,
-                            navigationFlow: sheetPresentation.remainingFlow),
+                        coordinator: coordinator.nextCoordinator(navigationFlow: sheetPresentation.remainingFlow),
                         rootView: { coordinator in
                             screenView(sheetPresentation.navigation, coordinator)
                         },
@@ -48,9 +46,7 @@ internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, Scre
                 }
                 .fullScreenCover(item: $coordinator.modalPresentation) { modalPresentation in
                     ManagedNavigationCoordinatorView(
-                        coordinator: NavigationCoordinator(
-                            parent: coordinator,
-                            navigationFlow: modalPresentation.remainingFlow),
+                        coordinator: coordinator.nextCoordinator(navigationFlow: modalPresentation.remainingFlow),
                         rootView: { coordinator in
                             screenView(modalPresentation.navigation, coordinator)
                         },
