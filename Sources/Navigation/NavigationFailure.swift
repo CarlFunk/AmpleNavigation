@@ -7,6 +7,7 @@
 //
 
 public enum NavigationFailure: Error {
+    case emptyNavigationFlow
     case notCurrentlyNavigating
     case notCurrentlyPresenting
     case screenNotFound

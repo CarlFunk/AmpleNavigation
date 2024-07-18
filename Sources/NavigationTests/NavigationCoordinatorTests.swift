@@ -129,64 +129,129 @@ final class NavigationCoordinatorTests: XCTestCase {
     }
     
     func testFlowPushNavigation() throws {
-        let flow = NavigationFlow<TestScreen>(
-            navigations: [
-                Navigation(screen: .cart, method: .push),
-                Navigation(screen: .checkout, method: .push),
-                Navigation(screen: .checkoutConfirmation, method: .push)
-            ])
+        let flow: NavigationFlow<TestScreen> = [
+            Navigation(screen: .cart, method: .push),
+            Navigation(screen: .checkout, method: .push),
+            Navigation(screen: .checkoutConfirmation, method: .push)
+        ]
+        let coordinatorNavigated = XCTestExpectation(description: "Coordinator navigated")
         let coordinator = NavigationCoordinator<TestScreen>()
         
-        coordinator.navigate(to: flow)
+        coordinator.navigate(to: flow) { _ in
+            coordinatorNavigated.fulfill()
+        }
+        
+        wait(for: [coordinatorNavigated], timeout: 5)
         
         XCTAssertNil(coordinator.parent)
         XCTAssertNil(coordinator.child)
         XCTAssertTrue(coordinator.hasNavigation)
-        XCTAssertTrue(coordinator.navigations.count == flow.navigations.count)
-        XCTAssertTrue(coordinator.navigations.screens() == flow.screens)
-        XCTAssertTrue(coordinator.hasNavigation(flow.navigations[0].screen))
-        XCTAssertTrue(coordinator.hasNavigation(flow.navigations[1].screen))
-        XCTAssertTrue(coordinator.hasNavigation(flow.navigations[2].screen))
+        XCTAssertTrue(coordinator.navigations.count == flow.count)
+        XCTAssertTrue(coordinator.navigations.screens() == flow.screens())
+        XCTAssertTrue(coordinator.hasNavigation(flow[0].screen))
+        XCTAssertTrue(coordinator.hasNavigation(flow[1].screen))
+        XCTAssertTrue(coordinator.hasNavigation(flow[2].screen))
         XCTAssertFalse(coordinator.isPresenting)
     }
     
     func testFlowModalNavigation() throws {
-        let flow = NavigationFlow<TestScreen>(
-            navigations: [
-                Navigation(screen: .cart, method: .modal),
-                Navigation(screen: .checkout, method: .modal),
-                Navigation(screen: .checkoutConfirmation, method: .modal)
-            ])
+        let flow: NavigationFlow<TestScreen> = [
+            Navigation(screen: .cart, method: .modal),
+            Navigation(screen: .checkout, method: .modal),
+            Navigation(screen: .checkoutConfirmation, method: .modal)
+        ]
+        let coordinatorNavigated = XCTestExpectation(description: "Coordinator navigated")
         let coordinator = NavigationCoordinator<TestScreen>()
         
-        coordinator.navigate(to: flow)
+        coordinator.navigate(to: flow) { _ in
+            coordinatorNavigated.fulfill()
+        }
+        
+        wait(for: [coordinatorNavigated], timeout: 5)
         
         XCTAssertNil(coordinator.parent)
         XCTAssertNil(coordinator.child)
         XCTAssertFalse(coordinator.hasNavigation)
         XCTAssertTrue(coordinator.isPresenting)
-        XCTAssertTrue(coordinator.isPresenting(flow.navigations[0].screen))
+        XCTAssertTrue(coordinator.isPresenting(flow[0].screen))
         XCTAssertNotNil(coordinator.modalPresentation)
-        XCTAssertTrue(coordinator.modalPresentation!.remainingFlow!.screens == Array(flow.screens[1...2]))
+        XCTAssertTrue(coordinator.modalPresentation!.remainingFlow!.screens() == Array(flow.screens()[1...2]))
     }
     
     func testFlowSheetNavigation() throws {
-        let flow = NavigationFlow<TestScreen>(
-            navigations: [
-                Navigation(screen: .cart, method: .sheet()),
-                Navigation(screen: .checkout, method: .sheet()),
-                Navigation(screen: .checkoutConfirmation, method: .sheet())
-            ])
+        let flow: NavigationFlow<TestScreen> = [
+            Navigation(screen: .cart, method: .sheet()),
+            Navigation(screen: .checkout, method: .sheet()),
+            Navigation(screen: .checkoutConfirmation, method: .sheet())
+        ]
+        let coordinatorNavigated = XCTestExpectation(description: "Coordinator navigated")
         let coordinator = NavigationCoordinator<TestScreen>()
         
-        coordinator.navigate(to: flow)
+        coordinator.navigate(to: flow) { _ in
+            coordinatorNavigated.fulfill()
+        }
+        
+        wait(for: [coordinatorNavigated], timeout: 5)
         
         XCTAssertNil(coordinator.parent)
         XCTAssertNil(coordinator.child)
         XCTAssertFalse(coordinator.hasNavigation)
         XCTAssertTrue(coordinator.isPresenting)
-        XCTAssertTrue(coordinator.isPresenting(flow.navigations[0].screen))
+        XCTAssertTrue(coordinator.isPresenting(flow[0].screen))
         XCTAssertNotNil(coordinator.sheetPresentation)
-        XCTAssertTrue(coordinator.sheetPresentation!.remainingFlow!.screens == Array(flow.screens[1...2]))
+        XCTAssertTrue(coordinator.sheetPresentation!.remainingFlow!.screens() == Array(flow.screens()[1...2]))
+    }
+    
+    func testFlowVariedNavigation() throws {
+        let flow: NavigationFlow<TestScreen> = [
+            Navigation(screen: .productList, method: .push),
+            Navigation(screen: .productDetail(id: "1"), method: .sheet()),
+            Navigation(screen: .cart, method: .modal),
+            Navigation(screen: .checkout, method: .push),
+            Navigation(screen: .checkoutConfirmation, method: .push)
+        ]
+        
+        let coordinatorNavigated = XCTestExpectation(description: "Coordinator navigated")
+        let secondCoordinatorNavigated = XCTestExpectation(description: "Second Coordinator navigated")
+        let thirdCoordinatorNavigated = XCTestExpectation(description: "Third Coordinator navigated")
+        
+        var coordinator: NavigationCoordinator<TestScreen>!
+        var secondCoordinator: NavigationCoordinator<TestScreen>!
+        var thirdCoordinator: NavigationCoordinator<TestScreen>!
+        
+        coordinator = NavigationCoordinator<TestScreen>()
+        coordinator.navigate(to: flow) { _ in
+            coordinatorNavigated.fulfill()
+            secondCoordinator = coordinator.nextCoordinator(navigationFlow: coordinator.sheetPresentation?.remainingFlow) { _ in
+                secondCoordinatorNavigated.fulfill()
+                thirdCoordinator = secondCoordinator.nextCoordinator(navigationFlow: secondCoordinator.modalPresentation?.remainingFlow) { _ in
+                    thirdCoordinatorNavigated.fulfill()
+                }
+            }
+        }
+        
+        wait(for: [coordinatorNavigated, secondCoordinatorNavigated, thirdCoordinatorNavigated], timeout: 5)
+        
+        XCTAssertNil(coordinator.parent)
+        XCTAssertNotNil(coordinator.child)
+        XCTAssertTrue(coordinator.hasNavigation)
+        XCTAssertTrue(coordinator.hasNavigation(flow[0].screen))
+        XCTAssertTrue(coordinator.isPresenting)
+        XCTAssertTrue(coordinator.isPresenting(flow[1].screen))
+        XCTAssertNotNil(coordinator.sheetPresentation)
+        
+        XCTAssertNotNil(secondCoordinator.parent)
+        XCTAssertNotNil(secondCoordinator.child)
+        XCTAssertFalse(secondCoordinator.hasNavigation)
+        XCTAssertTrue(secondCoordinator.isPresenting)
+        XCTAssertTrue(secondCoordinator.isPresenting(flow[2].screen))
+        XCTAssertNotNil(secondCoordinator.modalPresentation)
+        
+        XCTAssertNotNil(thirdCoordinator.parent)
+        XCTAssertNil(thirdCoordinator.child)
+        XCTAssertTrue(thirdCoordinator.hasNavigation)
+        XCTAssertTrue(thirdCoordinator.hasNavigation(flow[3].screen))
+        XCTAssertTrue(thirdCoordinator.hasNavigation(flow[4].screen))
+        XCTAssertFalse(thirdCoordinator.isPresenting)
     }
 }

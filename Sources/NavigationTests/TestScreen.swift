@@ -9,10 +9,10 @@
 import Navigation
 
 enum TestScreen: NavigationScreen {
-    case home
-    case productList
-    case productDetail(id: String)
     case cart
     case checkout
     case checkoutConfirmation
+    case home
+    case productDetail(id: String)
+    case productList
 }

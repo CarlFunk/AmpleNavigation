@@ -12,7 +12,7 @@ import Foundation
 public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
     
     /// The push navigations managed by this coordinator.
-    @Published internal var navigations: [Navigation<Screen>] = []
+    @Published internal var navigations: NavigationFlow<Screen> = []
     
     /// The modal navigation managed by this coordinator. There can only be one
     /// managed by a coordinator.
@@ -38,6 +38,7 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
     
     // MARK: - Internal
     
+    /// The coordinator that is at the root of the application. The root coordinator does not have a parent.
     internal func rootCoordinator() -> NavigationCoordinator<Screen> {
         var root = self
         
@@ -48,14 +49,17 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
         return root
     }
     
-    internal func nextCoordinator(navigationFlow: NavigationFlow<Screen>? = nil) -> NavigationCoordinator<Screen> {
+    /// Obtain the next coordinator that should be created when a modal / sheet navigation is invoked.
+    /// The next coordinator retains a reference to the current coordinator as the parent while setting the next
+    /// coordinator as the child of the current coordinator.
+    internal func nextCoordinator(navigationFlow: NavigationFlow<Screen>? = nil, completion: NavigationCompletion? = nil) -> NavigationCoordinator<Screen> {
         let coordinator = NavigationCoordinator(parent: self)
         
         child = coordinator
         
-        NavigationDelay.perform { [weak self] in
+        NavigationDelay.perform { [weak coordinator] in
             if let navigationFlow {
-                self?.navigate(to: navigationFlow)
+                coordinator?.navigate(to: navigationFlow, completion: completion)
             }
         }
         
@@ -86,42 +90,73 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
     
     // MARK: - Navigate Forward
     
+    public func navigate(
+        to screen: Screen,
+        with method: Navigation<Screen>.Method = .push,
+        completion: NavigationCompletion? = nil
+    ) {
+        let navigation = Navigation(screen: screen, method: method)
+        navigate(to: navigation, completion: completion)
+    }
+    
     /// Perform a navigation.
     public func navigate(
-        to navigation: Navigation<Screen>
+        to navigation: Navigation<Screen>,
+        completion: NavigationCompletion? = nil
     ) {
-        internalNavigate(to: navigation)
+        internalNavigate(to: navigation, completion: completion)
     }
     
     /// Perform a flow navigation, a series of navigations in sequence.
     public func navigate(
-        to navigationFlow: NavigationFlow<Screen>
+        to navigationFlow: NavigationFlow<Screen>,
+        completion: NavigationCompletion? = nil
     ) {
-        if navigationFlow.navigations.isEmpty { return }
-        let totalNavigations = navigationFlow.navigations.count
+        if navigationFlow.isEmpty {
+            completion?(.failure(.emptyNavigationFlow))
+            return
+        }
         
-        let firstIndexOfNonPushMethod = navigationFlow.navigations.firstIndex(where: { $0.method != .push }) ?? totalNavigations
-        let pushNavigations = navigationFlow.navigations[0..<firstIndexOfNonPushMethod]
-        self.navigations.append(contentsOf: pushNavigations)
+        if navigationFlow.hasOnlyPushMethods() {
+            navigations.append(contentsOf: navigationFlow)
+            completion?(.success)
+            return
+        }
         
-        // Flow navigation could be completed if no more items in list
-        guard navigationFlow.navigations.indices.contains(firstIndexOfNonPushMethod) else { return }
-        
-        let navigation = navigationFlow.navigations[firstIndexOfNonPushMethod]
-        
-        if navigationFlow.navigations.count > firstIndexOfNonPushMethod {
-            let nextIndexAfterNonPushMethod = firstIndexOfNonPushMethod + 1
-            let remainingFlow = NavigationFlow<Screen>(
-                navigations: Array(navigationFlow.navigations[nextIndexAfterNonPushMethod..<totalNavigations]))
-            internalNavigate(to: navigation, with: remainingFlow)
-        } else {
-            internalNavigate(to: navigation)
+        if let firstNonPushMethodIndex = navigationFlow.firstNonPushMethodIndex() {
+            let navigationFlowCount = navigationFlow.count
+            let afterFirstNonPushMethodIndex = navigationFlow.index(firstNonPushMethodIndex, offsetBy: 1, limitedBy: navigationFlowCount) ?? navigationFlowCount
+            
+            let pushNavigations = navigationFlow[0..<firstNonPushMethodIndex]
+            let nonPushNavigation = navigationFlow[firstNonPushMethodIndex]
+            let remainingNavigations = NavigationFlow(navigationFlow[afterFirstNonPushMethodIndex..<navigationFlowCount])
+            
+            navigations.append(contentsOf: pushNavigations)
+            
+            switch NavigationSettings.flowNavigationSpeed {
+            case .quick:
+                internalNavigate(
+                    to: nonPushNavigation,
+                    with: remainingNavigations.isEmpty ? nil : remainingNavigations,
+                    completion: completion)
+            case .slow:
+                NavigationDelay.perform { [weak self] in
+                    self?.internalNavigate(
+                        to: nonPushNavigation,
+                        with: remainingNavigations.isEmpty ? nil : remainingNavigations,
+                        completion: completion)
+                }
+            }
+            
         }
     }
     
+    /// Handles a single navigation by setting one of the three appropriate properties on the current
+    /// coordinator.
     private func internalNavigate(
         to navigation: Navigation<Screen>,
-        with remaining: NavigationFlow<Screen>? = nil
+        with remaining: NavigationFlow<Screen>? = nil,
+        completion: NavigationCompletion? = nil
     ) {
         switch navigation.method {
         case .push:
@@ -136,6 +171,10 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
             modalPresentation = NavigationModalPresentation(
                 navigation: navigation,
                 remainingFlow: remaining)
+        }
+        
+        NavigationDelay.perform {
+            completion?(.success)
         }
     }
     
@@ -199,7 +238,7 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
             return
         }
         
-        navigations.removeSubrange(unwindIndex...navigations.count)
+        navigations.removeSubrange(unwindIndex..<navigations.count)
         NavigationDelay.perform {
             completion?(.success)
         }
@@ -221,9 +260,13 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
     /// Remove all navigations backwards until the screen requested in displayed.
     public func unwindTo(screen: Screen, completion: NavigationCompletion? = nil) {
         if hasNavigation(screen) {
-            popTo(screen: screen, completion: completion)
+            dismiss { [weak self] _ in
+                self?.popTo(screen: screen, completion: completion)
+            }
         } else if let parent, parent.isPresenting(screen) {
-            popAll(completion)
+            dismiss { [weak self] _ in
+                self?.popAll(completion)
+            }
         } else if let parent {
             parent.unwindTo(screen: screen, completion: completion)
         } else {

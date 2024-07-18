@@ -8,15 +8,27 @@
 
 /// A collection of navigations to perform. Often times this is in response to
 /// receiving a deeplink.
-public class NavigationFlow<Screen: NavigationScreen> {
-    /// A list of navigations to perform in order.
-    public let navigations: [Navigation<Screen>]
-    
-    public init(navigations: [Navigation<Screen>]) {
-        self.navigations = navigations
+public typealias NavigationFlow<Screen: NavigationScreen> = [Navigation<Screen>]
+
+public extension NavigationFlow {
+    func screens<Screen>() -> [Screen] where Element == Navigation<Screen>, Screen: NavigationScreen {
+        self.map(\.screen)
     }
     
-    public var screens: [Screen] {
-        navigations.map(\.screen)
+    func methods<Screen>() -> [Navigation<Screen>.Method] where Element == Navigation<Screen>, Screen: NavigationScreen {
+        self.map(\.method)
+    }
+    
+    func uniqueMethods<Screen>() -> Set<Navigation<Screen>.Method> where Element == Navigation<Screen>, Screen: NavigationScreen {
+        Set(self.map(\.method))
+    }
+    
+    func hasOnlyPushMethods<Screen>() -> Bool where Element == Navigation<Screen>, Screen: NavigationScreen {
+        let uniqueMethods = uniqueMethods()
+        return uniqueMethods.count == 1 && uniqueMethods.contains(.push)
+    }
+    
+    func firstNonPushMethodIndex<Screen>() -> Int? where Element == Navigation<Screen> {
+        methods().firstIndex(where: { $0 != .push })
     }
 }
