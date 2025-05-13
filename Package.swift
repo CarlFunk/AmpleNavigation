@@ -3,24 +3,24 @@
 import PackageDescription
 
 let package = Package(
-    name: "Navigation",
+    name: "AmpleNavigation",
     platforms: [
         .iOS(.v16)
     ],
     products: [
         .library(
-            name: "Navigation",
-            targets: ["Navigation"]),
+            name: "AmpleNavigation",
+            targets: ["AmpleNavigation"]),
     ],
     dependencies: [],
     targets: [
         .target(
-            name: "Navigation",
+            name: "AmpleNavigation",
             dependencies: []),
         .testTarget(
-            name: "NavigationTests",
+            name: "AmpleNavigationTests",
             dependencies: [
-                .target(name: "Navigation")
+                .target(name: "AmpleNavigation")
             ])
     ]
 )

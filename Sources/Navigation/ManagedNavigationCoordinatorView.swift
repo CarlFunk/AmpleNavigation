@@ -1,6 +1,6 @@
 //
 //  ManagedNavigationCoordinatorView.swift
-//  Navigation
+//  AmpleNavigation
 //
 //  Created by Carl Funk on 7/10/23.
 //  Copyright © 2023 Carl Funk. All rights reserved.

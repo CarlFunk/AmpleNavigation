@@ -1,12 +1,12 @@
 //
 //  NavigationCoordinatorTests.swift
-//  NavigationTests
+//  AmpleNavigationTests
 //
 //  Created by Carl Funk on 5/30/24.
 //  Copyright © 2024 Carl Funk. All rights reserved.
 //
 
-@testable import Navigation
+@testable import AmpleNavigation
 import XCTest
 
 final class NavigationCoordinatorTests: XCTestCase {

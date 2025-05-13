@@ -1,6 +1,6 @@
 //
 //  NavigationDelay.swift
-//  Navigation
+//  AmpleNavigation
 //
 //  Created by Carl Funk on 8/4/23.
 //  Copyright © 2023 Carl Funk. All rights reserved.

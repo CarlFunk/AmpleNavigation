@@ -1,6 +1,6 @@
 //
 //  NavigationSettings.swift
-//  Navigation
+//  AmpleNavigation
 //
 //  Created by Carl Funk on 6/1/24.
 //  Copyright © 2024 Carl Funk. All rights reserved.
