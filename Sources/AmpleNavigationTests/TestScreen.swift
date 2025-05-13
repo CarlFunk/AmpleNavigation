@@ -6,7 +6,7 @@
 //  Copyright © 2024 Carl Funk. All rights reserved.
 //
 
-import Navigation
+import AmpleNavigation
 
 enum TestScreen: NavigationScreen {
     case cart
