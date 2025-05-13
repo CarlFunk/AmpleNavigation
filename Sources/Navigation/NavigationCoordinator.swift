@@ -74,8 +74,13 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
     }
     
     /// Returns the status of whether a push navigation of a specific screen was performed by this coordinator.
-    public func hasNavigation(_ screen: Screen) -> Bool {
+    public func hasNavigation(screen: Screen) -> Bool {
         navigations.contains(where: { $0.screen == screen })
+    }
+    
+    /// Returns the status of whether a push navigation of a specific screen via id was performed by this coordinator.
+    public func hasNavigation(id: Screen.ID) -> Bool {
+        navigations.contains(where: { $0.screen.id == id })
     }
     
     /// Returns the status of whether a modal presentation is in progress by this coordinator.
@@ -84,8 +89,13 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
     }
     
     /// Returns the status of whether a modal presentation of the specific screen is in progress by this coordinator.
-    public func isPresenting(_ screen: Screen) -> Bool {
+    public func isPresenting(screen: Screen) -> Bool {
         modalPresentation?.navigation.screen == screen || sheetPresentation?.navigation.screen == screen
+    }
+    
+    /// Returns the status of whether a modal presentation of the specific screen via id is in progress by this coordinator.
+    public func isPresenting(id: Screen.ID) -> Bool {
+        modalPresentation?.navigation.screen.id == id || sheetPresentation?.navigation.screen.id == id
     }
     
     // MARK: - Navigate Forward
@@ -161,12 +171,13 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
         switch navigation.method {
         case .push:
             navigations.append(navigation)
-        case .sheet(let detents, let showsDragIndicator):
+        case .sheet(let detents, let showsDragIndicator, let onDismiss):
             sheetPresentation = NavigationSheetPresentation(
                 navigation: navigation,
                 remainingFlow: remaining,
                 detents: detents,
-                showsDragIndicator: showsDragIndicator)
+                showsDragIndicator: showsDragIndicator,
+                onDismiss: onDismiss)
         case .modal:
             modalPresentation = NavigationModalPresentation(
                 navigation: navigation,
@@ -238,7 +249,20 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
             return
         }
         
-        navigations.removeSubrange(unwindIndex..<navigations.count)
+        navigations.removeSubrange(navigations.index(after: unwindIndex)..<navigations.count)
+        NavigationDelay.perform {
+            completion?(.success)
+        }
+    }
+    
+    /// Dismiss all push navigations of the current coordinator until the desired screen via id is displayed.
+    public func popTo(id: Screen.ID, completion: NavigationCompletion? = nil) {
+        guard let unwindIndex = navigations.lastIndex(where: { $0.screen.id == id }) else {
+            completion?(.failure(.screenNotFound))
+            return
+        }
+        
+        navigations.removeSubrange(navigations.index(after: unwindIndex)..<navigations.count)
         NavigationDelay.perform {
             completion?(.success)
         }
@@ -257,18 +281,36 @@ public class NavigationCoordinator<Screen: NavigationScreen>: ObservableObject {
         }
     }
     
-    /// Remove all navigations backwards until the screen requested in displayed.
+    /// Remove all navigations backwards until the screen requested via id is displayed.
     public func unwindTo(screen: Screen, completion: NavigationCompletion? = nil) {
-        if hasNavigation(screen) {
+        if hasNavigation(screen: screen) {
             dismiss { [weak self] _ in
                 self?.popTo(screen: screen, completion: completion)
             }
-        } else if let parent, parent.isPresenting(screen) {
+        } else if let parent, parent.isPresenting(screen: screen) {
             dismiss { [weak self] _ in
                 self?.popAll(completion)
             }
         } else if let parent {
             parent.unwindTo(screen: screen, completion: completion)
+        } else {
+            // At the root and the desired screen was not found
+            completion?(.failure(.screenNotFound))
+        }
+    }
+    
+    /// Remove all navigations backwards until the screen requested in displayed.
+    public func unwindTo(id: Screen.ID, completion: NavigationCompletion? = nil) {
+        if hasNavigation(id: id) {
+            dismiss { [weak self] _ in
+                self?.popTo(id: id, completion: completion)
+            }
+        } else if let parent, parent.isPresenting(id: id) {
+            dismiss { [weak self] _ in
+                self?.popAll(completion)
+            }
+        } else if let parent {
+            parent.unwindTo(id: id, completion: completion)
         } else {
             // At the root and the desired screen was not found
             completion?(.failure(.screenNotFound))

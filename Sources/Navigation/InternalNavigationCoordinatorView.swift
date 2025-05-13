@@ -32,7 +32,16 @@ internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, Scre
                 .navigationDestination(for: screenType) { navigation in
                     screenView(navigation, coordinator)
                 }
-                .sheet(item: $coordinator.sheetPresentation) { sheetPresentation in
+                .sheet(
+                    item: Binding(get: {
+                        coordinator.sheetPresentation
+                    }, set: { sheetPresentation in
+                        guard sheetPresentation == nil else { return }
+                        coordinator.sheetPresentation?.onDismiss?()
+                        WindowRedraw.force()
+                        coordinator.dismiss()
+                    })
+                ) { sheetPresentation in
                     ManagedNavigationCoordinatorView(
                         coordinator: coordinator.nextCoordinator(navigationFlow: sheetPresentation.remainingFlow),
                         rootView: { coordinator in

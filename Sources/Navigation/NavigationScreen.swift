@@ -7,4 +7,4 @@
 //
 
 /// Defines a screen that can be navigated to.
-public protocol NavigationScreen: Hashable { }
+public protocol NavigationScreen: Hashable, Identifiable { }

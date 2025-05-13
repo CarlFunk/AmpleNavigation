@@ -26,15 +26,20 @@ internal struct NavigationSheetPresentation<Screen: NavigationScreen>: Identifia
     /// that the modal can be swiped to dismiss.
     let showsDragIndicator: Bool
     
+    /// The executed closure when the sheet is dismissed.
+    let onDismiss: (() -> Void)?
+    
     init(
         navigation: Navigation<Screen>,
         remainingFlow: NavigationFlow<Screen>?,
         detents: Set<PresentationDetent>,
-        showsDragIndicator: Bool = false
+        showsDragIndicator: Bool = false,
+        onDismiss: (() -> Void)? = nil
     ) {
         self.navigation = navigation
         self.remainingFlow = remainingFlow
         self.detents = detents
         self.showsDragIndicator = showsDragIndicator
+        self.onDismiss = onDismiss
     }
 }

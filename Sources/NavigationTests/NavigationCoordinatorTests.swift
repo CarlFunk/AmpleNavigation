@@ -47,7 +47,7 @@ final class NavigationCoordinatorTests: XCTestCase {
         XCTAssertNil(coordinator.parent)
         XCTAssertNil(coordinator.child)
         XCTAssertTrue(coordinator.hasNavigation)
-        XCTAssertTrue(coordinator.hasNavigation(navigation.screen))
+        XCTAssertTrue(coordinator.hasNavigation(screen: navigation.screen))
         XCTAssertFalse(coordinator.isPresenting)
     }
     
@@ -61,7 +61,7 @@ final class NavigationCoordinatorTests: XCTestCase {
         XCTAssertNil(coordinator.child)
         XCTAssertFalse(coordinator.hasNavigation)
         XCTAssertTrue(coordinator.isPresenting)
-        XCTAssertTrue(coordinator.isPresenting(navigation.screen))
+        XCTAssertTrue(coordinator.isPresenting(screen: navigation.screen))
     }
     
     func testSingleSheetNavigation() throws {
@@ -74,7 +74,7 @@ final class NavigationCoordinatorTests: XCTestCase {
         XCTAssertNil(coordinator.child)
         XCTAssertFalse(coordinator.hasNavigation)
         XCTAssertTrue(coordinator.isPresenting)
-        XCTAssertTrue(coordinator.isPresenting(navigation.screen))
+        XCTAssertTrue(coordinator.isPresenting(screen: navigation.screen))
     }
     
     func testMultiPushNavigation() throws {
@@ -91,8 +91,8 @@ final class NavigationCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.hasNavigation)
         XCTAssertTrue(coordinator.navigations.count == navigations.count)
         XCTAssertTrue(coordinator.navigations.map { $0.screen } == navigations.map { $0.screen })
-        XCTAssertTrue(coordinator.hasNavigation(firstNavigation.screen))
-        XCTAssertTrue(coordinator.hasNavigation(secondNavigation.screen))
+        XCTAssertTrue(coordinator.hasNavigation(screen: firstNavigation.screen))
+        XCTAssertTrue(coordinator.hasNavigation(screen: secondNavigation.screen))
         XCTAssertFalse(coordinator.isPresenting)
     }
     
@@ -108,7 +108,7 @@ final class NavigationCoordinatorTests: XCTestCase {
         XCTAssertNil(coordinator.child)
         XCTAssertFalse(coordinator.hasNavigation)
         XCTAssertTrue(coordinator.isPresenting)
-        XCTAssertTrue(coordinator.isPresenting(secondNavigation.screen))
+        XCTAssertTrue(coordinator.isPresenting(screen: secondNavigation.screen))
         XCTAssertNotNil(coordinator.modalPresentation)
     }
     
@@ -124,7 +124,7 @@ final class NavigationCoordinatorTests: XCTestCase {
         XCTAssertNil(coordinator.child)
         XCTAssertFalse(coordinator.hasNavigation)
         XCTAssertTrue(coordinator.isPresenting)
-        XCTAssertTrue(coordinator.isPresenting(secondNavigation.screen))
+        XCTAssertTrue(coordinator.isPresenting(screen: secondNavigation.screen))
         XCTAssertNotNil(coordinator.sheetPresentation)
     }
     
@@ -148,9 +148,9 @@ final class NavigationCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.hasNavigation)
         XCTAssertTrue(coordinator.navigations.count == flow.count)
         XCTAssertTrue(coordinator.navigations.screens() == flow.screens())
-        XCTAssertTrue(coordinator.hasNavigation(flow[0].screen))
-        XCTAssertTrue(coordinator.hasNavigation(flow[1].screen))
-        XCTAssertTrue(coordinator.hasNavigation(flow[2].screen))
+        XCTAssertTrue(coordinator.hasNavigation(screen: flow[0].screen))
+        XCTAssertTrue(coordinator.hasNavigation(screen: flow[1].screen))
+        XCTAssertTrue(coordinator.hasNavigation(screen: flow[2].screen))
         XCTAssertFalse(coordinator.isPresenting)
     }
     
@@ -173,7 +173,7 @@ final class NavigationCoordinatorTests: XCTestCase {
         XCTAssertNil(coordinator.child)
         XCTAssertFalse(coordinator.hasNavigation)
         XCTAssertTrue(coordinator.isPresenting)
-        XCTAssertTrue(coordinator.isPresenting(flow[0].screen))
+        XCTAssertTrue(coordinator.isPresenting(screen: flow[0].screen))
         XCTAssertNotNil(coordinator.modalPresentation)
         XCTAssertTrue(coordinator.modalPresentation!.remainingFlow!.screens() == Array(flow.screens()[1...2]))
     }
@@ -197,7 +197,7 @@ final class NavigationCoordinatorTests: XCTestCase {
         XCTAssertNil(coordinator.child)
         XCTAssertFalse(coordinator.hasNavigation)
         XCTAssertTrue(coordinator.isPresenting)
-        XCTAssertTrue(coordinator.isPresenting(flow[0].screen))
+        XCTAssertTrue(coordinator.isPresenting(screen: flow[0].screen))
         XCTAssertNotNil(coordinator.sheetPresentation)
         XCTAssertTrue(coordinator.sheetPresentation!.remainingFlow!.screens() == Array(flow.screens()[1...2]))
     }
@@ -235,23 +235,23 @@ final class NavigationCoordinatorTests: XCTestCase {
         XCTAssertNil(coordinator.parent)
         XCTAssertNotNil(coordinator.child)
         XCTAssertTrue(coordinator.hasNavigation)
-        XCTAssertTrue(coordinator.hasNavigation(flow[0].screen))
+        XCTAssertTrue(coordinator.hasNavigation(screen: flow[0].screen))
         XCTAssertTrue(coordinator.isPresenting)
-        XCTAssertTrue(coordinator.isPresenting(flow[1].screen))
+        XCTAssertTrue(coordinator.isPresenting(screen: flow[1].screen))
         XCTAssertNotNil(coordinator.sheetPresentation)
         
         XCTAssertNotNil(secondCoordinator.parent)
         XCTAssertNotNil(secondCoordinator.child)
         XCTAssertFalse(secondCoordinator.hasNavigation)
         XCTAssertTrue(secondCoordinator.isPresenting)
-        XCTAssertTrue(secondCoordinator.isPresenting(flow[2].screen))
+        XCTAssertTrue(secondCoordinator.isPresenting(screen: flow[2].screen))
         XCTAssertNotNil(secondCoordinator.modalPresentation)
         
         XCTAssertNotNil(thirdCoordinator.parent)
         XCTAssertNil(thirdCoordinator.child)
         XCTAssertTrue(thirdCoordinator.hasNavigation)
-        XCTAssertTrue(thirdCoordinator.hasNavigation(flow[3].screen))
-        XCTAssertTrue(thirdCoordinator.hasNavigation(flow[4].screen))
+        XCTAssertTrue(thirdCoordinator.hasNavigation(screen: flow[3].screen))
+        XCTAssertTrue(thirdCoordinator.hasNavigation(screen: flow[4].screen))
         XCTAssertFalse(thirdCoordinator.isPresenting)
     }
 }

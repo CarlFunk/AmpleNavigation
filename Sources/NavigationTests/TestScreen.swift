@@ -15,4 +15,8 @@ enum TestScreen: NavigationScreen {
     case home
     case productDetail(id: String)
     case productList
+    
+    var id: TestScreen {
+        self
+    }
 }

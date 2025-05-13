@@ -18,10 +18,34 @@ public struct Navigation<Screen: NavigationScreen>: Hashable {
         case push
         
         /// Modal navigation that can be edited to display over a portion of the screen.
-        case sheet(detents: Set<PresentationDetent> = [.large], showsDragIndicator: Bool = false)
+        case sheet(detents: Set<PresentationDetent> = [.large], showsDragIndicator: Bool = false, onDismiss: (() -> Void)? = nil)
         
         /// Full screen modal navigation
         case modal
+        
+        public static func == (lhs: Navigation<Screen>.Method, rhs: Navigation<Screen>.Method) -> Bool {
+            switch (lhs, rhs) {
+            case (.push, .push):
+                return true
+            case (.sheet, .sheet):
+                return true
+            case (.modal, .modal):
+                return true
+            default:
+                return false
+            }
+        }
+        
+        public func hash(into hasher: inout Hasher) {
+            switch self {
+            case .push:
+                hasher.combine("push")
+            case .sheet:
+                hasher.combine("sheet")
+            case .modal:
+                hasher.combine("modal")
+            }
+        }
     }
     
     /// The specific screen that should be navigated to.
