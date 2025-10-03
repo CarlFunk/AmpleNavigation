@@ -12,7 +12,7 @@ import SwiftUI
 /// managing the coordinator's lifecycle is NOT required. If deeplinking is not a requirement, using
 /// this coordinator view will tie the coordinator's lifecycle to it.
 public struct ManagedNavigationCoordinatorView<Screen: NavigationScreen, ScreenView: View>: View {
-    @StateObject private var coordinator: NavigationCoordinator<Screen>
+    @State private var coordinator: NavigationCoordinator<Screen>
     
     private let rootView: (_ coordinator: NavigationCoordinator<Screen>) -> ScreenView
     private let screenView: (_ navigation: Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
@@ -22,7 +22,7 @@ public struct ManagedNavigationCoordinatorView<Screen: NavigationScreen, ScreenV
         rootView: @escaping (_ coordinator: NavigationCoordinator<Screen>) -> ScreenView,
         screenView: @escaping (_ navigation : Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
     ) {
-        self._coordinator = StateObject(wrappedValue: coordinator)
+        self._coordinator = State(wrappedValue: coordinator)
         self.rootView = rootView
         self.screenView = screenView
     }

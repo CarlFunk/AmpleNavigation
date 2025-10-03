@@ -9,12 +9,16 @@
 import Foundation
 
 public struct NavigationSettings {
-    private init() { }
-    
     public enum FlowNavigationSpeed {
         case quick
         case slow
     }
     
-    public static var flowNavigationSpeed: FlowNavigationSpeed = .quick
+    public let flowNavigationSpeed: FlowNavigationSpeed
+    
+    public init(
+        flowNavigationSpeed: FlowNavigationSpeed = .quick
+    ) {
+        self.flowNavigationSpeed = flowNavigationSpeed
+    }
 }

@@ -9,7 +9,7 @@
 import SwiftUI
 
 internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, ScreenView: View>: View {
-    @ObservedObject private var coordinator: NavigationCoordinator<Screen>
+    @Bindable private var coordinator: NavigationCoordinator<Screen>
     
     private let screenType: Navigation<Screen>.Type
     private let rootView: (_ coordinator: NavigationCoordinator<Screen>) -> ScreenView
@@ -20,7 +20,7 @@ internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, Scre
         rootView: @escaping (_ coordinator: NavigationCoordinator<Screen>) -> ScreenView,
         screenView: @escaping (_ navigation : Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
     ) {
-        self._coordinator = ObservedObject(wrappedValue: coordinator)
+        self.coordinator = coordinator
         self.screenType = Navigation<Screen>.self
         self.rootView = rootView
         self.screenView = screenView
@@ -35,11 +35,13 @@ internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, Scre
                 .sheet(
                     item: Binding(get: {
                         coordinator.sheetPresentation
-                    }, set: { sheetPresentation in
+                    }, set: { (sheetPresentation: NavigationSheetPresentation<Screen>?) in
                         guard sheetPresentation == nil else { return }
                         coordinator.sheetPresentation?.onDismiss?()
                         WindowRedraw.force()
-                        coordinator.dismiss()
+                        Task {
+                            try await coordinator.dismiss()
+                        }
                     })
                 ) { sheetPresentation in
                     ManagedNavigationCoordinatorView(

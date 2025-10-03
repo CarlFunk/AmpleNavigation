@@ -9,16 +9,29 @@
 import SwiftUI
 
 /// The representation of a navigation to a specific screen.
-public struct Navigation<Screen: NavigationScreen>: Hashable {
+public struct Navigation<Screen: NavigationScreen>: Hashable, Sendable {
     
     /// Navigation methods for use.
-    public enum Method: Equatable, Hashable {
+    public enum Method: Equatable, Hashable, Sendable {
+        
+        public struct SheetConfiguration: Equatable, Hashable, Sendable {
+            public let detents: Set<PresentationDetent>
+            public let showsDragIndicator: Bool
+            
+            public init(
+                detents: Set<PresentationDetent> = [.large],
+                showsDragIndicator: Bool = false
+            ) {
+                self.detents = detents
+                self.showsDragIndicator = showsDragIndicator
+            }
+        }
         
         /// Forward navigation.
         case push
         
         /// Modal navigation that can be edited to display over a portion of the screen.
-        case sheet(detents: Set<PresentationDetent> = [.large], showsDragIndicator: Bool = false, onDismiss: (() -> Void)? = nil)
+        case sheet(configuration: SheetConfiguration, onDismiss: (@Sendable () -> Void)? = nil)
         
         /// Full screen modal navigation
         case modal
@@ -27,8 +40,8 @@ public struct Navigation<Screen: NavigationScreen>: Hashable {
             switch (lhs, rhs) {
             case (.push, .push):
                 return true
-            case (.sheet, .sheet):
-                return true
+            case (.sheet(let lhsConfiguration, _), .sheet(let rhsConfiguration, _)):
+                return lhsConfiguration == rhsConfiguration
             case (.modal, .modal):
                 return true
             default:

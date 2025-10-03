@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+@MainActor
 public struct WindowRedraw {
     /// SwiftUI Sheets that are pulled down after backgrounding the app were found to have
     /// UI mis-alignment issues that were not visible to the user but could be seen using the

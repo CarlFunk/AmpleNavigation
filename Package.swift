@@ -1,11 +1,11 @@
-// swift-tools-version: 5.8
+// swift-tools-version: 6.2
 
 import PackageDescription
 
 let package = Package(
     name: "AmpleNavigation",
     platforms: [
-        .iOS(.v16)
+        .iOS(.v18)
     ],
     products: [
         .library(

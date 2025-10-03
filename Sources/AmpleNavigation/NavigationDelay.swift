@@ -19,9 +19,8 @@ public struct NavigationDelay {
     /// SwiftUI navigation is problematic when attempting to perform multiple navigations in
     /// sequence or attempting to display another UI element while the navigation animation
     /// is in progress.
-    public static func perform(_ completion: @escaping () -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + time) {
-            completion()
-        }
+    public static func perform() async {
+        try? await Task.sleep(for: .seconds(time))
     }
 }
+

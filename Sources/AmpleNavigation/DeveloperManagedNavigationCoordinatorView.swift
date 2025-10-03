@@ -13,7 +13,7 @@ import SwiftUI
 /// flow navigations after receiving a deeplink. Typically this would only require the most root
 /// coordinator to be managed by the developer.
 public struct DeveloperManagedNavigationCoordinatorView<Screen: NavigationScreen, ScreenView: View>: View {
-    @ObservedObject private var coordinator: NavigationCoordinator<Screen>
+    private var coordinator: NavigationCoordinator<Screen>
     
     private let rootView: (_ coordinator: NavigationCoordinator<Screen>) -> ScreenView
     private let screenView: (_ navigation: Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
@@ -23,7 +23,7 @@ public struct DeveloperManagedNavigationCoordinatorView<Screen: NavigationScreen
         rootView: @escaping (_ coordinator: NavigationCoordinator<Screen>) -> ScreenView,
         screenView: @escaping (_ navigation : Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
     ) {
-        self._coordinator = ObservedObject(wrappedValue: coordinator)
+        self.coordinator = coordinator
         self.rootView = rootView
         self.screenView = screenView
     }
