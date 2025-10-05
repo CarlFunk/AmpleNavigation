@@ -20,12 +20,13 @@ public extension NavigationFlow {
     }
     
     func uniqueMethods<Screen>() -> Set<Navigation<Screen>.Method> where Element == Navigation<Screen>, Screen: NavigationScreen {
-        Set(self.map(\.method))
+        Set(methods())
     }
     
     func hasOnlyPushMethods<Screen>() -> Bool where Element == Navigation<Screen>, Screen: NavigationScreen {
         let uniqueMethods = uniqueMethods()
-        return uniqueMethods.count == 1 && uniqueMethods.contains(.push)
+        if uniqueMethods.isEmpty { return false }
+        return uniqueMethods.allSatisfy { $0 == .push }
     }
     
     func firstNonPushMethodIndex<Screen>() -> Int? where Element == Navigation<Screen> {

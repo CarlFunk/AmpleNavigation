@@ -6,7 +6,7 @@
 //  Copyright © 2024 Carl Funk. All rights reserved.
 //
 
-public enum NavigationFailure: Error {
+public enum NavigationFailure: CaseIterable, Error {
     case emptyNavigationFlow
     case notCurrentlyNavigating
     case notCurrentlyPresenting

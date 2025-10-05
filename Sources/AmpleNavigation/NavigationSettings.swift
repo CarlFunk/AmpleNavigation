@@ -6,19 +6,17 @@
 //  Copyright © 2024 Carl Funk. All rights reserved.
 //
 
-import Foundation
-
-public struct NavigationSettings {
-    public enum FlowNavigationSpeed {
+public struct NavigationSettings: Equatable {
+    public enum Speed: Equatable {
         case quick
         case slow
     }
     
-    public let flowNavigationSpeed: FlowNavigationSpeed
+    public let speed: Speed
     
     public init(
-        flowNavigationSpeed: FlowNavigationSpeed = .quick
+        speed: Speed = .quick
     ) {
-        self.flowNavigationSpeed = flowNavigationSpeed
+        self.speed = speed
     }
 }

@@ -14,21 +14,14 @@ import Foundation
 public class NavigationCoordinator<Screen: NavigationScreen> {
     
     /// The push navigations managed by this coordinator.
-    internal var navigations: NavigationFlow<Screen> = []
+    internal var pushPresentation: NavigationFlow<Screen>
     
     /// The modal navigation managed by this coordinator. There can only be one
     /// managed by a coordinator.
-    internal var sheetPresentation: NavigationSheetPresentation<Screen>? = nil
-    
-    /// The fullscreen navigation managed by this coordinator. There can only be one
-    /// managed by a coordinator.
-    internal var modalPresentation: NavigationModalPresentation<Screen>? = nil
+    internal var modalPresentation: NavigationPresentation<Screen>?
     
     /// The upstream coordinator that created the current coordinator.
     internal weak var parent: NavigationCoordinator<Screen>?
-    
-    /// The downstream coordinator that was created by the current coordinator.
-    internal weak var child: NavigationCoordinator<Screen>?
     
     /// The serttings associated with the current coordinator.
     internal let settings: NavigationSettings
@@ -41,9 +34,16 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
     ) {
         self.parent = parent
         self.settings = settings
+        
+        self.pushPresentation = []
+        self.modalPresentation = nil
     }
     
-    // MARK: - Internal
+    // MARK: - Coordinator
+    
+    internal func childCoordinator() -> NavigationCoordinator<Screen>? {
+        return modalPresentation?.coordinator
+    }
     
     /// The coordinator that is at the root of the application. The root coordinator does not have a parent.
     internal func rootCoordinator() -> NavigationCoordinator<Screen> {
@@ -59,42 +59,41 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
     /// Obtain the next coordinator that should be created when a modal / sheet navigation is invoked.
     /// The next coordinator retains a reference to the current coordinator as the parent while setting the next
     /// coordinator as the child of the current coordinator.
-    internal func nextCoordinator(navigationFlow: NavigationFlow<Screen>? = nil) -> NavigationCoordinator<Screen> {
+    internal func nextCoordinator() -> NavigationCoordinator<Screen> {
         let coordinator = NavigationCoordinator(parent: self, settings: settings)
-        child = coordinator
         return coordinator
     }
     
     // MARK: - Status
     
     /// Returns the status of whether a push navigation was performed by this coordinator.
-    public var hasNavigation: Bool {
-        !navigations.isEmpty
+    public var isPushing: Bool {
+        !pushPresentation.isEmpty
     }
     
     /// Returns the status of whether a push navigation of a specific screen was performed by this coordinator.
-    public func hasNavigation(screen: Screen) -> Bool {
-        navigations.contains(where: { $0.screen == screen })
+    public func isPushing(screen: Screen) -> Bool {
+        pushPresentation.contains(where: { $0.screen == screen })
     }
     
     /// Returns the status of whether a push navigation of a specific screen via id was performed by this coordinator.
-    public func hasNavigation(id: Screen.ID) -> Bool {
-        navigations.contains(where: { $0.screen.id == id })
+    public func isPushing(id: Screen.ID) -> Bool {
+        pushPresentation.contains(where: { $0.screen.id == id })
     }
     
     /// Returns the status of whether a modal presentation is in progress by this coordinator.
     public var isPresenting: Bool {
-        modalPresentation != nil || sheetPresentation != nil
+        modalPresentation != nil
     }
     
     /// Returns the status of whether a modal presentation of the specific screen is in progress by this coordinator.
     public func isPresenting(screen: Screen) -> Bool {
-        modalPresentation?.navigation.screen == screen || sheetPresentation?.navigation.screen == screen
+        modalPresentation?.navigation.screen == screen
     }
     
     /// Returns the status of whether a modal presentation of the specific screen via id is in progress by this coordinator.
     public func isPresenting(id: Screen.ID) -> Bool {
-        modalPresentation?.navigation.screen.id == id || sheetPresentation?.navigation.screen.id == id
+        modalPresentation?.navigation.screen.id == id
     }
     
     // MARK: - Navigate Forward
@@ -102,7 +101,7 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
     public func navigate(
         to screen: Screen,
         with method: Navigation<Screen>.Method = .push
-    ) async throws {
+    ) async throws(NavigationFailure) {
         let navigation = Navigation(screen: screen, method: method)
         return try await navigate(to: navigation)
     }
@@ -123,7 +122,7 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
         }
         
         if navigationFlow.hasOnlyPushMethods() {
-            navigations.append(contentsOf: navigationFlow)
+            pushPresentation.append(contentsOf: navigationFlow)
             return
         }
         
@@ -135,9 +134,9 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
             let nonPushNavigation = navigationFlow[firstNonPushMethodIndex]
             let remainingNavigations = NavigationFlow(navigationFlow[afterFirstNonPushMethodIndex..<navigationFlowCount])
             
-            navigations.append(contentsOf: pushNavigations)
+            pushPresentation.append(contentsOf: pushNavigations)
             
-            switch settings.flowNavigationSpeed {
+            switch settings.speed {
             case .quick:
                 return try await internalNavigate(
                     to: nonPushNavigation,
@@ -160,18 +159,31 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
     ) async throws(NavigationFailure) {
         switch navigation.method {
         case .push:
-            navigations.append(navigation)
-        case .sheet(let configuration, let onDismiss):
-            sheetPresentation = NavigationSheetPresentation(
+            pushPresentation.append(navigation)
+            
+            if let remaining {
+                try await navigate(to: remaining)
+            }
+        case .sheet:
+            let nextCoordinator = nextCoordinator()
+            modalPresentation = NavigationPresentation(
                 navigation: navigation,
-                remainingFlow: remaining,
-                detents: configuration.detents,
-                showsDragIndicator: configuration.showsDragIndicator,
-                onDismiss: onDismiss)
+                coordinator: nextCoordinator)
+            
+            if let remaining {
+                await NavigationDelay.perform()
+                try await nextCoordinator.navigate(to: remaining)
+            }
         case .modal:
-            modalPresentation = NavigationModalPresentation(
+            let nextCoordinator = nextCoordinator()
+            modalPresentation = NavigationPresentation(
                 navigation: navigation,
-                remainingFlow: remaining)
+                coordinator: nextCoordinator)
+            
+            if let remaining {
+                await NavigationDelay.perform()
+                try await nextCoordinator.navigate(to: remaining)
+            }
         }
         
         await NavigationDelay.perform()
@@ -185,8 +197,8 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
             throw .notCurrentlyPresenting
         }
         
+        modalPresentation?.navigation.onDismiss()
         modalPresentation = nil
-        sheetPresentation = nil
         
         await NavigationDelay.perform()
     }
@@ -204,41 +216,41 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
     
     /// Dismiss the last push presentation.
     public func popLast() async throws(NavigationFailure) {
-        if navigations.isEmpty {
+        if pushPresentation.isEmpty {
             throw .notCurrentlyNavigating
         }
         
-        let _ = navigations.popLast()
+        let _ = pushPresentation.popLast()
         await NavigationDelay.perform()
     }
     
     /// Dismiss all push navigations of the current coordinator until the root screen is displayed.
     public func popAll() async throws(NavigationFailure) {
-        if navigations.isEmpty {
+        if pushPresentation.isEmpty {
             throw .notCurrentlyNavigating
         }
         
-        navigations = []
+        pushPresentation = []
         await NavigationDelay.perform()
     }
     
     /// Dismiss all push navigations of the current coordinator until the desired screen is displayed.
     public func popTo(screen: Screen) async throws(NavigationFailure) {
-        guard let unwindIndex = navigations.lastIndex(where: { $0.screen == screen }) else {
+        guard let unwindIndex = pushPresentation.lastIndex(where: { $0.screen == screen }) else {
             throw .screenNotFound
         }
         
-        navigations.removeSubrange(navigations.index(after: unwindIndex)..<navigations.count)
+        pushPresentation.removeSubrange(pushPresentation.index(after: unwindIndex)..<pushPresentation.count)
         await NavigationDelay.perform()
     }
     
     /// Dismiss all push navigations of the current coordinator until the desired screen via id is displayed.
     public func popTo(id: Screen.ID) async throws(NavigationFailure) {
-        guard let unwindIndex = navigations.lastIndex(where: { $0.screen.id == id }) else {
+        guard let unwindIndex = pushPresentation.lastIndex(where: { $0.screen.id == id }) else {
             throw .screenNotFound
         }
         
-        navigations.removeSubrange(navigations.index(after: unwindIndex)..<navigations.count)
+        pushPresentation.removeSubrange(pushPresentation.index(after: unwindIndex)..<pushPresentation.count)
         await NavigationDelay.perform()
     }
     
@@ -256,7 +268,7 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
     
     /// Remove all navigations backwards until the screen requested via id is displayed.
     public func unwindTo(screen: Screen) async throws(NavigationFailure) {
-        if hasNavigation(screen: screen) {
+        if isPushing(screen: screen) {
             try await dismiss()
             try await popTo(screen: screen)
         } else if let parent, parent.isPresenting(screen: screen) {
@@ -272,7 +284,7 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
     
     /// Remove all navigations backwards until the screen requested in displayed.
     public func unwindTo(id: Screen.ID) async throws(NavigationFailure) {
-        if hasNavigation(id: id) {
+        if isPushing(id: id) {
             try await dismiss()
             try await popTo(id: id)
         } else if let parent, parent.isPresenting(id: id) {
@@ -286,4 +298,3 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
         }
     }
 }
-

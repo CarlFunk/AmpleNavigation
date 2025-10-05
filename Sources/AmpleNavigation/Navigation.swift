@@ -6,59 +6,19 @@
 //  Copyright © 2023 Carl Funk. All rights reserved.
 //
 
-import SwiftUI
-
 /// The representation of a navigation to a specific screen.
-public struct Navigation<Screen: NavigationScreen>: Hashable, Sendable {
+public struct Navigation<Screen: NavigationScreen>: Equatable, Hashable {
     
     /// Navigation methods for use.
-    public enum Method: Equatable, Hashable, Sendable {
-        
-        public struct SheetConfiguration: Equatable, Hashable, Sendable {
-            public let detents: Set<PresentationDetent>
-            public let showsDragIndicator: Bool
-            
-            public init(
-                detents: Set<PresentationDetent> = [.large],
-                showsDragIndicator: Bool = false
-            ) {
-                self.detents = detents
-                self.showsDragIndicator = showsDragIndicator
-            }
-        }
-        
+    public enum Method: Equatable, Hashable {
         /// Forward navigation.
         case push
         
         /// Modal navigation that can be edited to display over a portion of the screen.
-        case sheet(configuration: SheetConfiguration, onDismiss: (@Sendable () -> Void)? = nil)
+        case sheet
         
         /// Full screen modal navigation
         case modal
-        
-        public static func == (lhs: Navigation<Screen>.Method, rhs: Navigation<Screen>.Method) -> Bool {
-            switch (lhs, rhs) {
-            case (.push, .push):
-                return true
-            case (.sheet(let lhsConfiguration, _), .sheet(let rhsConfiguration, _)):
-                return lhsConfiguration == rhsConfiguration
-            case (.modal, .modal):
-                return true
-            default:
-                return false
-            }
-        }
-        
-        public func hash(into hasher: inout Hasher) {
-            switch self {
-            case .push:
-                hasher.combine("push")
-            case .sheet:
-                hasher.combine("sheet")
-            case .modal:
-                hasher.combine("modal")
-            }
-        }
     }
     
     /// The specific screen that should be navigated to.
@@ -67,16 +27,25 @@ public struct Navigation<Screen: NavigationScreen>: Hashable, Sendable {
     /// The specific method of navigation to use to reach the designated screen.
     public var method: Method
     
+    /// The closure to execute with the navigation in undone
+    public var onDismiss: NavigationDismiss
+    
     public init(
         screen: Screen,
-        method: Method = .push
+        method: Method = .push,
+        onDismiss: @escaping NavigationDismiss = { }
     ) {
         self.screen = screen
         self.method = method
+        self.onDismiss = onDismiss
     }
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(screen)
-        hasher.combine(method.hashValue)
+        hasher.combine(method)
+    }
+    
+    public static func == (lhs: Navigation<Screen>, rhs: Navigation<Screen>) -> Bool {
+        lhs.screen == rhs.screen && lhs.method == rhs.method
     }
 }

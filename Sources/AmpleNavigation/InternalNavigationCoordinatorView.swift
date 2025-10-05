@@ -27,17 +27,16 @@ internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, Scre
     }
     
     var body: some View {
-        NavigationStack(path: $coordinator.navigations) {
+        NavigationStack(path: $coordinator.pushPresentation) {
             rootView(coordinator)
                 .navigationDestination(for: screenType) { navigation in
                     screenView(navigation, coordinator)
                 }
                 .sheet(
                     item: Binding(get: {
-                        coordinator.sheetPresentation
-                    }, set: { (sheetPresentation: NavigationSheetPresentation<Screen>?) in
-                        guard sheetPresentation == nil else { return }
-                        coordinator.sheetPresentation?.onDismiss?()
+                        (coordinator.modalPresentation?.isSheet ?? false) ? coordinator.modalPresentation : nil
+                    }, set: { modalPresentation in
+                        guard modalPresentation == nil else { return }
                         WindowRedraw.force()
                         Task {
                             try await coordinator.dismiss()
@@ -45,19 +44,27 @@ internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, Scre
                     })
                 ) { sheetPresentation in
                     ManagedNavigationCoordinatorView(
-                        coordinator: coordinator.nextCoordinator(navigationFlow: sheetPresentation.remainingFlow),
+                        coordinator: sheetPresentation.coordinator,
                         rootView: { coordinator in
                             screenView(sheetPresentation.navigation, coordinator)
                         },
                         screenView: { navigation, coordinator in
                             screenView(navigation, coordinator)
                         })
-                    .presentationDetents(sheetPresentation.detents)
-                    .presentationDragIndicator(sheetPresentation.showsDragIndicator ? .visible : .hidden)
                 }
-                .fullScreenCover(item: $coordinator.modalPresentation) { modalPresentation in
+                .fullScreenCover(
+                    item: Binding(get: {
+                        (coordinator.modalPresentation?.isModal ?? false) ? coordinator.modalPresentation : nil
+                    }, set: { modalPresentation in
+                        guard modalPresentation == nil else { return }
+                        WindowRedraw.force()
+                        Task {
+                            try await coordinator.dismiss()
+                        }
+                    })
+                ) { modalPresentation in
                     ManagedNavigationCoordinatorView(
-                        coordinator: coordinator.nextCoordinator(navigationFlow: modalPresentation.remainingFlow),
+                        coordinator: modalPresentation.coordinator,
                         rootView: { coordinator in
                             screenView(modalPresentation.navigation, coordinator)
                         },
