@@ -46,17 +46,7 @@ public struct NavigationCoordinatorView<Screen: NavigationScreen, ScreenView: Vi
                     screenView(navigation, coordinator)
                         .environment(coordinator)
                 }
-                .sheet(
-                    item: Binding(get: {
-                        (coordinator.modalPresentation?.isSheet ?? false) ? coordinator.modalPresentation : nil
-                    }, set: { modalPresentation in
-                        guard modalPresentation == nil else { return }
-                        WindowRedraw.force()
-                        Task {
-                            try await coordinator.dismiss()
-                        }
-                    })
-                ) { sheetPresentation in
+                .sheet(item: $coordinator.sheetPresentation) { sheetPresentation in
                     NavigationCoordinatorView(
                         navigation: sheetPresentation.navigation,
                         coordinator: sheetPresentation.coordinator,
@@ -64,17 +54,7 @@ public struct NavigationCoordinatorView<Screen: NavigationScreen, ScreenView: Vi
                             screenView(navigation, coordinator)
                         })
                 }
-                .fullScreenCover(
-                    item: Binding(get: {
-                        (coordinator.modalPresentation?.isModal ?? false) ? coordinator.modalPresentation : nil
-                    }, set: { modalPresentation in
-                        guard modalPresentation == nil else { return }
-                        WindowRedraw.force()
-                        Task {
-                            try await coordinator.dismiss()
-                        }
-                    })
-                ) { modalPresentation in
+                .fullScreenCover(item: $coordinator.modalPresentation) { modalPresentation in
                     NavigationCoordinatorView(
                         navigation: modalPresentation.navigation,
                         coordinator: modalPresentation.coordinator,

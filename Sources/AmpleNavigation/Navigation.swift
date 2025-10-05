@@ -41,6 +41,12 @@ public final class Navigation<Screen: NavigationScreen>: Equatable, Hashable {
     }
     
     deinit {
+        if [Method.modal, Method.sheet].contains(method) {
+            Task {
+                await WindowRedraw.force()
+            }
+        }
+        
         onDismiss()
     }
     

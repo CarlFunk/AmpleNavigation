@@ -20,7 +20,7 @@ struct NavigationCoordinator_Tests {
         #expect(coordinator.parent == nil)
         #expect(coordinator.settings == NavigationSettings())
         #expect(coordinator.pushPresentation == [])
-        #expect(coordinator.modalPresentation == nil)
+        #expect(coordinator.presentPresentation == nil)
         
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == false)
@@ -34,7 +34,7 @@ struct NavigationCoordinator_Tests {
         #expect(coordinator.parent === parentCoordinator)
         #expect(coordinator.settings == NavigationSettings())
         #expect(coordinator.pushPresentation == [])
-        #expect(coordinator.modalPresentation == nil)
+        #expect(coordinator.presentPresentation == nil)
         
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == false)
@@ -48,7 +48,7 @@ struct NavigationCoordinator_Tests {
         #expect(coordinator.parent == nil)
         #expect(coordinator.settings == settings)
         #expect(coordinator.pushPresentation == [])
-        #expect(coordinator.modalPresentation == nil)
+        #expect(coordinator.presentPresentation == nil)
         
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == false)
@@ -132,13 +132,13 @@ struct NavigationCoordinator_Tests {
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: secondNavigation.screen))
-        #expect(coordinator.modalPresentation != nil)
+        #expect(coordinator.presentPresentation != nil)
         
         #expect(secondCoordinator.parent === coordinator)
         #expect(secondCoordinator.childCoordinator() == nil)
         #expect(secondCoordinator.isPushing == false)
         #expect(secondCoordinator.isPresenting == false)
-        #expect(secondCoordinator.modalPresentation == nil)
+        #expect(secondCoordinator.presentPresentation == nil)
     }
     
     @Test
@@ -155,7 +155,7 @@ struct NavigationCoordinator_Tests {
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: secondNavigation.screen))
-        #expect(coordinator.modalPresentation != nil)
+        #expect(coordinator.presentPresentation != nil)
     }
     
     @Test
@@ -196,8 +196,8 @@ struct NavigationCoordinator_Tests {
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: flow[0].screen))
-        #expect(coordinator.modalPresentation != nil)
-        #expect(coordinator.modalPresentation?.coordinator.modalPresentation != nil)
+        #expect(coordinator.presentPresentation != nil)
+        #expect(coordinator.presentPresentation?.coordinator.presentPresentation != nil)
     }
     
     @Test
@@ -216,7 +216,7 @@ struct NavigationCoordinator_Tests {
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: flow[0].screen))
-        #expect(coordinator.modalPresentation != nil)
+        #expect(coordinator.presentPresentation != nil)
     }
     
     @Test
@@ -244,14 +244,14 @@ struct NavigationCoordinator_Tests {
         #expect(coordinator.isPushing(screen: flow[0].screen))
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: flow[1].screen))
-        #expect(coordinator.modalPresentation != nil)
+        #expect(coordinator.presentPresentation != nil)
         
         #expect(secondCoordinator.parent != nil)
         #expect(secondCoordinator.childCoordinator() != nil)
         #expect(secondCoordinator.isPushing == false)
         #expect(secondCoordinator.isPresenting)
         #expect(secondCoordinator.isPresenting(screen: flow[2].screen))
-        #expect(secondCoordinator.modalPresentation != nil)
+        #expect(secondCoordinator.presentPresentation != nil)
         
         #expect(thirdCoordinator.parent != nil)
         #expect(thirdCoordinator.childCoordinator() == nil)

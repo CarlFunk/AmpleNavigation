@@ -18,13 +18,31 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
     
     /// The modal navigation managed by this coordinator. There can only be one
     /// managed by a coordinator.
-    internal var modalPresentation: NavigationPresentation<Screen>?
+    internal var presentPresentation: NavigationPresentation<Screen>?
     
     /// The upstream coordinator that created the current coordinator.
     internal weak var parent: NavigationCoordinator<Screen>?
     
     /// The serttings associated with the current coordinator.
     internal let settings: NavigationSettings
+    
+    internal var sheetPresentation: NavigationPresentation<Screen>? {
+        get {
+            return (presentPresentation?.isSheet ?? false) ? presentPresentation : nil
+        }
+        set {
+            presentPresentation = newValue
+        }
+    }
+    
+    internal var modalPresentation: NavigationPresentation<Screen>? {
+        get {
+            return (presentPresentation?.isModal ?? false) ? presentPresentation : nil
+        }
+        set {
+            presentPresentation = newValue
+        }
+    }
     
     // MARK: - Initializers
     
@@ -36,13 +54,13 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
         self.settings = settings
         
         self.pushPresentation = []
-        self.modalPresentation = nil
+        self.presentPresentation = nil
     }
     
     // MARK: - Coordinator
     
     internal func childCoordinator() -> NavigationCoordinator<Screen>? {
-        return modalPresentation?.coordinator
+        return presentPresentation?.coordinator
     }
     
     /// The coordinator that is at the root of the application. The root coordinator does not have a parent.
@@ -83,17 +101,17 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
     
     /// Returns the status of whether a modal presentation is in progress by this coordinator.
     public var isPresenting: Bool {
-        modalPresentation != nil
+        presentPresentation != nil
     }
     
     /// Returns the status of whether a modal presentation of the specific screen is in progress by this coordinator.
     public func isPresenting(screen: Screen) -> Bool {
-        modalPresentation?.navigation.screen == screen
+        presentPresentation?.navigation.screen == screen
     }
     
     /// Returns the status of whether a modal presentation of the specific screen via id is in progress by this coordinator.
     public func isPresenting(id: Screen.ID) -> Bool {
-        modalPresentation?.navigation.screen.id == id
+        presentPresentation?.navigation.screen.id == id
     }
     
     // MARK: - Navigate Forward
@@ -167,7 +185,7 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
             }
         case .sheet:
             let nextCoordinator = nextCoordinator()
-            modalPresentation = NavigationPresentation(
+            presentPresentation = NavigationPresentation(
                 navigation: navigation,
                 coordinator: nextCoordinator)
             
@@ -177,7 +195,7 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
             }
         case .modal:
             let nextCoordinator = nextCoordinator()
-            modalPresentation = NavigationPresentation(
+            presentPresentation = NavigationPresentation(
                 navigation: navigation,
                 coordinator: nextCoordinator)
             
@@ -198,7 +216,7 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
             throw .notCurrentlyPresenting
         }
         
-        modalPresentation = nil
+        presentPresentation = nil
         
         await NavigationDelay.perform()
     }
