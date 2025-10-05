@@ -1,5 +1,5 @@
 //
-//  DeveloperManagedNavigationCoordinatorView.swift
+//  NavigationCoordinatorView.swift
 //  AmpleNavigation
 //
 //  Created by Carl Funk on 7/10/23.
@@ -12,26 +12,26 @@ import SwiftUI
 /// managing the coordinator's lifecycle is required. Situations that might require this are for
 /// flow navigations after receiving a deeplink. Typically this would only require the most root
 /// coordinator to be managed by the developer.
-public struct DeveloperManagedNavigationCoordinatorView<Screen: NavigationScreen, ScreenView: View>: View {
+public struct NavigationCoordinatorView<Screen: NavigationScreen, ScreenView: View>: View {
     private var coordinator: NavigationCoordinator<Screen>
     
-    private let rootView: (_ coordinator: NavigationCoordinator<Screen>) -> ScreenView
+    private let screen: Screen
     private let screenView: (_ navigation: Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
     
     public init(
         coordinator: NavigationCoordinator<Screen>,
-        rootView: @escaping (_ coordinator: NavigationCoordinator<Screen>) -> ScreenView,
-        screenView: @escaping (_ navigation : Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
+        screen: Screen,
+        @ViewBuilder screenView: @escaping (_ navigation : Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
     ) {
         self.coordinator = coordinator
-        self.rootView = rootView
+        self.screen = screen
         self.screenView = screenView
     }
     
     public var body: some View {
         InternalNavigationCoordinatorView(
+            navigation: Navigation(screen: screen),
             coordinator: coordinator,
-            rootView: rootView,
             screenView: screenView)
     }
 }

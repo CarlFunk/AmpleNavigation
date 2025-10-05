@@ -7,7 +7,7 @@
 //
 
 /// The representation of a navigation to a specific screen.
-public struct Navigation<Screen: NavigationScreen>: Equatable, Hashable {
+public final class Navigation<Screen: NavigationScreen>: Equatable, Hashable {
     
     /// Navigation methods for use.
     public enum Method: Equatable, Hashable {
@@ -38,6 +38,10 @@ public struct Navigation<Screen: NavigationScreen>: Equatable, Hashable {
         self.screen = screen
         self.method = method
         self.onDismiss = onDismiss
+    }
+    
+    deinit {
+        onDismiss()
     }
     
     public func hash(into hasher: inout Hasher) {

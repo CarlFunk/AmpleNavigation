@@ -11,26 +11,26 @@ import SwiftUI
 internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, ScreenView: View>: View {
     @Bindable private var coordinator: NavigationCoordinator<Screen>
     
-    private let screenType: Navigation<Screen>.Type
-    private let rootView: (_ coordinator: NavigationCoordinator<Screen>) -> ScreenView
+    private let navigation: Navigation<Screen>
     private let screenView: (_ navigation: Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
     
-    init(
+    internal init(
+        navigation: Navigation<Screen>,
         coordinator: NavigationCoordinator<Screen>,
-        rootView: @escaping (_ coordinator: NavigationCoordinator<Screen>) -> ScreenView,
-        screenView: @escaping (_ navigation : Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
+        @ViewBuilder screenView: @escaping (_ navigation : Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
     ) {
+        self.navigation = navigation
         self.coordinator = coordinator
-        self.screenType = Navigation<Screen>.self
-        self.rootView = rootView
         self.screenView = screenView
     }
     
     var body: some View {
         NavigationStack(path: $coordinator.pushPresentation) {
-            rootView(coordinator)
-                .navigationDestination(for: screenType) { navigation in
+            screenView(navigation, coordinator)
+                .environment(coordinator)
+                .navigationDestination(for: Navigation<Screen>.self) { navigation in
                     screenView(navigation, coordinator)
+                        .environment(coordinator)
                 }
                 .sheet(
                     item: Binding(get: {
@@ -43,11 +43,9 @@ internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, Scre
                         }
                     })
                 ) { sheetPresentation in
-                    ManagedNavigationCoordinatorView(
+                    InternalNavigationCoordinatorView(
+                        navigation: sheetPresentation.navigation,
                         coordinator: sheetPresentation.coordinator,
-                        rootView: { coordinator in
-                            screenView(sheetPresentation.navigation, coordinator)
-                        },
                         screenView: { navigation, coordinator in
                             screenView(navigation, coordinator)
                         })
@@ -63,11 +61,9 @@ internal struct InternalNavigationCoordinatorView<Screen: NavigationScreen, Scre
                         }
                     })
                 ) { modalPresentation in
-                    ManagedNavigationCoordinatorView(
+                    InternalNavigationCoordinatorView(
+                        navigation: modalPresentation.navigation,
                         coordinator: modalPresentation.coordinator,
-                        rootView: { coordinator in
-                            screenView(modalPresentation.navigation, coordinator)
-                        },
                         screenView: { navigation, coordinator in
                             screenView(navigation, coordinator)
                         })

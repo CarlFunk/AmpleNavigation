@@ -11,7 +11,7 @@ import Foundation
 /// An object that can determine how to navigate.
 @MainActor
 @Observable
-public class NavigationCoordinator<Screen: NavigationScreen> {
+public final class NavigationCoordinator<Screen: NavigationScreen> {
     
     /// The push navigations managed by this coordinator.
     internal var pushPresentation: NavigationFlow<Screen>
@@ -100,9 +100,10 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
     
     public func navigate(
         to screen: Screen,
-        with method: Navigation<Screen>.Method = .push
+        with method: Navigation<Screen>.Method = .push,
+        onDismiss: @escaping NavigationDismiss = { },
     ) async throws(NavigationFailure) {
-        let navigation = Navigation(screen: screen, method: method)
+        let navigation = Navigation(screen: screen, method: method, onDismiss: onDismiss)
         return try await navigate(to: navigation)
     }
     
@@ -197,7 +198,6 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
             throw .notCurrentlyPresenting
         }
         
-        modalPresentation?.navigation.onDismiss()
         modalPresentation = nil
         
         await NavigationDelay.perform()
@@ -220,7 +220,7 @@ public class NavigationCoordinator<Screen: NavigationScreen> {
             throw .notCurrentlyNavigating
         }
         
-        let _ = pushPresentation.popLast()
+        pushPresentation.removeLast()
         await NavigationDelay.perform()
     }
     

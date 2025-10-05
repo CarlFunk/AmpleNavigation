@@ -9,7 +9,7 @@
 import Foundation
 
 /// A fullscreen modal presentation to navigate to.
-internal class NavigationPresentation<Screen: NavigationScreen>: Equatable, Identifiable {
+internal final class NavigationPresentation<Screen: NavigationScreen>: Equatable, Identifiable {
     /// Unique identifier of the specific full screen modal navigation.
     let id: UUID
     
