@@ -51,17 +51,13 @@ public struct NavigationCoordinatorView<Screen: NavigationScreen, ScreenView: Vi
                     NavigationCoordinatorView(
                         navigation: sheetPresentation.navigation,
                         coordinator: sheetPresentation.coordinator,
-                        screenView: { navigation, coordinator in
-                            screenView(navigation, coordinator)
-                        })
+                        screenView: screenView)
                 }
                 .fullScreenCover(item: $coordinator.modalPresentation) { modalPresentation in
                     NavigationCoordinatorView(
                         navigation: modalPresentation.navigation,
                         coordinator: modalPresentation.coordinator,
-                        screenView: { navigation, coordinator in
-                            screenView(navigation, coordinator)
-                        })
+                        screenView: screenView)
                 }
         }
         .navigationSplitViewStyle(.balanced)
