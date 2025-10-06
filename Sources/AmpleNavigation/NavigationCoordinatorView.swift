@@ -23,9 +23,10 @@ public struct NavigationCoordinatorView<Screen: NavigationScreen, ScreenView: Vi
         screen: Screen,
         @ViewBuilder screenView: @escaping (_ navigation : Navigation<Screen>, _ coordinator: NavigationCoordinator<Screen>) -> ScreenView
     ) {
-        self.coordinator = coordinator
-        self.navigation = Navigation(screen: screen)
-        self.screenView = screenView
+        self.init(
+            navigation: Navigation(screen: screen),
+            coordinator: coordinator,
+            screenView: screenView)
     }
     
     private init(
