@@ -203,6 +203,8 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
                 await NavigationDelay.perform()
                 try await nextCoordinator.navigate(to: remaining)
             }
+        default:
+            break
         }
         
         await NavigationDelay.perform()

@@ -8,18 +8,7 @@
 
 /// The representation of a navigation to a specific screen.
 public final class Navigation<Screen: NavigationScreen>: Equatable, Hashable {
-    
-    /// Navigation methods for use.
-    public enum Method: Equatable, Hashable {
-        /// Forward navigation.
-        case push
-        
-        /// Modal navigation that can be edited to display over a portion of the screen.
-        case sheet
-        
-        /// Full screen modal navigation
-        case modal
-    }
+    public typealias Method = NavigationMethod
     
     /// The specific screen that should be navigated to.
     public var screen: Screen
