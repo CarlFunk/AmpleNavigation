@@ -15,7 +15,23 @@ struct NavigationSettings_Tests {
     func testInitializationWithDefaultArguments() async throws {
         let settings = NavigationSettings()
         
+        #expect(settings.debug == false)
+        #expect(settings.delay == 0.625)
         #expect(settings.speed == .quick)
+    }
+    
+    @Test
+    func testInitializationWithDebugArgument() async throws {
+        let settings = NavigationSettings(debug: true)
+        
+        #expect(settings.debug == true)
+    }
+    
+    @Test
+    func testInitializationWithDelayArgument() async throws {
+        let settings = NavigationSettings(delay: 0.25)
+        
+        #expect(settings.delay == 0.25)
     }
     
     @Test

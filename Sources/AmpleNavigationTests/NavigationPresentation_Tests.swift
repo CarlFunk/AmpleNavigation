@@ -13,9 +13,9 @@ import Testing
 @MainActor
 @Suite("Navigation Presentation")
 struct NavigationPresentation_Tests {
-    let coordinator = NavigationCoordinator<TestScreen>()
-    let modalNavigation = Navigation<TestScreen>(screen: .cart, method: .modal)
-    let sheetNavigation = Navigation<TestScreen>(screen: .cart, method: .sheet)
+    let coordinator = NavigationCoordinator<TestScreen>(root: .home)
+    let modalNavigation = Navigation<TestScreen>(screen: .cart, method: .fullScreenModal)
+    let sheetNavigation = Navigation<TestScreen>(screen: .cart, method: .sheetModal)
     
     @Test
     func testInitialization() async throws {
@@ -29,16 +29,16 @@ struct NavigationPresentation_Tests {
     func testIsSheet() async throws {
         let presentation = NavigationPresentation(navigation: sheetNavigation, coordinator: coordinator)
         
-        #expect(presentation.isModal == false)
-        #expect(presentation.isSheet == true)
+        #expect(presentation.isFullScreenModal == false)
+        #expect(presentation.isSheetModal == true)
     }
     
     @Test
     func testIsModal() async throws {
         let presentation = NavigationPresentation(navigation: modalNavigation, coordinator: coordinator)
         
-        #expect(presentation.isModal == true)
-        #expect(presentation.isSheet == false)
+        #expect(presentation.isFullScreenModal == true)
+        #expect(presentation.isSheetModal == false)
     }
     
     @Test

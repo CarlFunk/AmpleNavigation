@@ -22,19 +22,19 @@ struct Navigation_Tests {
     @Test
     func testInitializerWithArguments() async throws {
         var onDismissOutput: String = ""
-        let navigation = Navigation<TestScreen>(screen: .home, method: .modal, onDismiss: { onDismissOutput = "DISMISSED" })
+        let navigation = Navigation<TestScreen>(screen: .home, method: .fullScreenModal, onDismiss: { onDismissOutput = "DISMISSED" })
         
         navigation.onDismiss()
         
         #expect(navigation.screen == .home)
-        #expect(navigation.method == .modal)
+        #expect(navigation.method == .fullScreenModal)
         #expect(onDismissOutput == "DISMISSED")
     }
     
     @Test
     func testHashableConformance() async throws {
         let screen: TestScreen = .cart
-        let method: Navigation<TestScreen>.Method = .sheet
+        let method: Navigation<TestScreen>.Method = .sheetModal
         let navigation = Navigation<TestScreen>(screen: screen, method: method)
         
         var hasher = Hasher()
@@ -46,19 +46,19 @@ struct Navigation_Tests {
     
     @Test
     func testEquatableConformance() async throws {
-        let navigation = Navigation<TestScreen>(screen: .home, method: .sheet)
+        let navigation = Navigation<TestScreen>(screen: .home, method: .sheetModal)
         
-        #expect(navigation == Navigation<TestScreen>(screen: .home, method: .sheet))
-        #expect(navigation != Navigation<TestScreen>(screen: .cart, method: .sheet))
+        #expect(navigation == Navigation<TestScreen>(screen: .home, method: .sheetModal))
+        #expect(navigation != Navigation<TestScreen>(screen: .cart, method: .sheetModal))
         #expect(navigation != Navigation<TestScreen>(screen: .home, method: .push))
     }
     
     @Test
     func testMethodHashableConformance() async throws {
-        let method = Navigation<TestScreen>.Method.modal
+        let method = Navigation<TestScreen>.Method.fullScreenModal
         
         var matchingHasher = Hasher()
-        matchingHasher.combine(Navigation<TestScreen>.Method.modal)
+        matchingHasher.combine(Navigation<TestScreen>.Method.fullScreenModal)
         
         var nonMatchingHasher = Hasher()
         nonMatchingHasher.combine(Navigation<TestScreen>.Method.push)
@@ -69,10 +69,10 @@ struct Navigation_Tests {
     
     @Test
     func testMethodEquatableConformance() async throws {
-        let method = Navigation<TestScreen>.Method.modal
+        let method = Navigation<TestScreen>.Method.fullScreenModal
         
-        #expect(method == .modal)
+        #expect(method == .fullScreenModal)
         #expect(method != .push)
-        #expect(method != .sheet)
+        #expect(method != .sheetModal)
     }
 }

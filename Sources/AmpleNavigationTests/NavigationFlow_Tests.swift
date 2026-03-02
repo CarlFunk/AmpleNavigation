@@ -17,8 +17,8 @@ struct NavigationFlow_Tests {
     let mixedFlow = [
         Navigation<TestScreen>(screen: .home, method: .push),
         Navigation<TestScreen>(screen: .productList, method: .push),
-        Navigation<TestScreen>(screen: .productDetail(id: "1234"), method: .sheet),
-        Navigation<TestScreen>(screen: .cart, method: .modal)
+        Navigation<TestScreen>(screen: .productDetail(id: "1234"), method: .sheetModal),
+        Navigation<TestScreen>(screen: .cart, method: .fullScreenModal)
     ]
     
     let pushOnlyFlow = [
@@ -38,14 +38,14 @@ struct NavigationFlow_Tests {
     @Test
     func testMethods() async throws {
         #expect(emptyFlow.methods() == [])
-        #expect(mixedFlow.methods() == [.push, .push, .sheet, .modal])
+        #expect(mixedFlow.methods() == [.push, .push, .sheetModal, .fullScreenModal])
         #expect(pushOnlyFlow.methods() == [.push, .push, .push, .push])
     }
     
     @Test
     func testUniqueMethods() async throws {
         #expect(emptyFlow.uniqueMethods() == [])
-        #expect(mixedFlow.uniqueMethods() == [.push, .sheet, .modal])
+        #expect(mixedFlow.uniqueMethods() == [.push, .sheetModal, .fullScreenModal])
         #expect(pushOnlyFlow.uniqueMethods() == [.push])
     }
     

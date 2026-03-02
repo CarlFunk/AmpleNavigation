@@ -12,14 +12,20 @@ import Foundation
 /// a navigation.
 public struct NavigationDelay {
     /// The standard delay time to use when ensuring that a navigation animation is completed.
-    public static let time: TimeInterval = 0.625
+    public static let standardTime: TimeInterval = 0.625
     
-    /// Perform an action after the standard delay time.
+    public let time: TimeInterval
+    
+    public init(time: TimeInterval = Self.standardTime) {
+        self.time = time
+    }
+    
+    /// Perform an action after the delay time.
     ///
     /// SwiftUI navigation is problematic when attempting to perform multiple navigations in
     /// sequence or attempting to display another UI element while the navigation animation
     /// is in progress.
-    public static func perform() async {
+    public func perform() async {
         try? await Task.sleep(for: .seconds(time))
     }
 }

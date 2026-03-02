@@ -11,8 +11,8 @@ import Foundation
 public struct NavigationMethod: Equatable, Hashable, Sendable {
     internal enum InternalValue: Equatable, Hashable {
         case push
-        case sheet
-        case modal
+        case sheetModal
+        case fullScreenModal
         case none
     }
     
@@ -26,10 +26,10 @@ public struct NavigationMethod: Equatable, Hashable, Sendable {
     public static let push = NavigationMethod(value: .push)
     
     /// Modal navigation that can be edited to display over a portion of the screen.
-    public static let sheet = NavigationMethod(value: .sheet)
+    public static let sheetModal = NavigationMethod(value: .sheetModal)
     
-    /// Full screen modal navigation
-    public static let modal = NavigationMethod(value: .modal)
+    /// Full Screen modal navigation
+    public static let fullScreenModal = NavigationMethod(value: .fullScreenModal)
     
     /// Root navigation
     internal static let none = NavigationMethod(value: .none)

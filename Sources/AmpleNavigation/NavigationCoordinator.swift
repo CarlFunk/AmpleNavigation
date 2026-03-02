@@ -13,55 +13,81 @@ import Foundation
 @Observable
 public final class NavigationCoordinator<Screen: NavigationScreen> {
     
+    /// The navigation that caused the creation of the current coordinator. The
+    /// most root navigation of all coordinators will always have a method of `.none`.
+    internal var navigation: Navigation<Screen>
+    
     /// The push navigations managed by this coordinator.
     internal var pushPresentation: NavigationFlow<Screen>
     
     /// The modal navigation managed by this coordinator. There can only be one
-    /// managed by a coordinator.
+    /// managed by a coordinator at a time. It can be a sheet or a fullScreen.
     internal var presentPresentation: NavigationPresentation<Screen>?
+    
+    /// The sheet modal navigation managed by this coordinator. This is used
+    /// by the view to determine when to show a sheet modal presentation.
+    internal var sheetPresentation: NavigationPresentation<Screen>? {
+        get {
+            return presentPresentation?.isSheetModal == true ? presentPresentation : nil
+        }
+        set {
+            presentPresentation = newValue
+        }
+    }
+    
+    /// The full screen modal navigation managed by this coordinator. This is used
+    /// by the view to determine when to show a full screen modal presentation.
+    internal var fullScreenPresentation: NavigationPresentation<Screen>? {
+        get {
+            return presentPresentation?.isFullScreenModal == true ? presentPresentation : nil
+        }
+        set {
+            presentPresentation = newValue
+        }
+    }
     
     /// The upstream coordinator that created the current coordinator.
     internal weak var parent: NavigationCoordinator<Screen>?
     
+    /// The downstream coordinator that was created by the current coordinator
+    internal var child: NavigationCoordinator<Screen>? {
+        return presentPresentation?.coordinator
+    }
+    
     /// The serttings associated with the current coordinator.
     internal let settings: NavigationSettings
     
-    internal var sheetPresentation: NavigationPresentation<Screen>? {
-        get {
-            return (presentPresentation?.isSheet ?? false) ? presentPresentation : nil
-        }
-        set {
-            presentPresentation = newValue
-        }
-    }
-    
-    internal var modalPresentation: NavigationPresentation<Screen>? {
-        get {
-            return (presentPresentation?.isModal ?? false) ? presentPresentation : nil
-        }
-        set {
-            presentPresentation = newValue
-        }
-    }
-    
     // MARK: - Initializers
     
-    public init(
-        parent: NavigationCoordinator<Screen>? = nil,
+    public convenience init(
+        root: Screen,
         settings: NavigationSettings = NavigationSettings()
     ) {
+        self.init(
+            navigation: Navigation(screen: root, method: .none),
+            parent: nil,
+            settings: settings
+        )
+    }
+    
+    internal init(
+        navigation: Navigation<Screen>,
+        parent: NavigationCoordinator<Screen>?,
+        settings: NavigationSettings
+    ) {
+        self.navigation = navigation
         self.parent = parent
         self.settings = settings
         
         self.pushPresentation = []
         self.presentPresentation = nil
+        
+        if settings.debug {
+            setupDebugObserving()
+        }
     }
     
     // MARK: - Coordinator
-    
-    internal func childCoordinator() -> NavigationCoordinator<Screen>? {
-        return presentPresentation?.coordinator
-    }
     
     /// The coordinator that is at the root of the application. The root coordinator does not have a parent.
     internal func rootCoordinator() -> NavigationCoordinator<Screen> {
@@ -74,15 +100,11 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
         return root
     }
     
-    /// Obtain the next coordinator that should be created when a modal / sheet navigation is invoked.
-    /// The next coordinator retains a reference to the current coordinator as the parent while setting the next
-    /// coordinator as the child of the current coordinator.
-    internal func nextCoordinator() -> NavigationCoordinator<Screen> {
-        let coordinator = NavigationCoordinator(parent: self, settings: settings)
-        return coordinator
-    }
-    
     // MARK: - Status
+    
+    public var isRoot: Bool {
+        rootCoordinator() === self
+    }
     
     /// Returns the status of whether a push navigation was performed by this coordinator.
     public var isPushing: Bool {
@@ -155,18 +177,13 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
             
             pushPresentation.append(contentsOf: pushNavigations)
             
-            switch settings.speed {
-            case .quick:
-                return try await internalNavigate(
-                    to: nonPushNavigation,
-                    with: remainingNavigations.isEmpty ? nil : remainingNavigations)
-            case .slow:
-                await NavigationDelay.perform()
-                return try await internalNavigate(
-                    to: nonPushNavigation,
-                    with: remainingNavigations.isEmpty ? nil : remainingNavigations)
+            if settings.speed == .slow {
+                await NavigationDelay(time: settings.delay).perform()
             }
             
+            return try await internalNavigate(
+                to: nonPushNavigation,
+                with: remainingNavigations.isEmpty ? nil : remainingNavigations)
         }
     }
     
@@ -183,31 +200,22 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
             if let remaining {
                 try await navigate(to: remaining)
             }
-        case .sheet:
-            let nextCoordinator = nextCoordinator()
+        case .sheetModal, .fullScreenModal:
+            /// The next coordinator retains a reference to the current coordinator as the parent.
+            let nextCoordinator = NavigationCoordinator(navigation: navigation, parent: self, settings: settings)
             presentPresentation = NavigationPresentation(
                 navigation: navigation,
                 coordinator: nextCoordinator)
             
             if let remaining {
-                await NavigationDelay.perform()
-                try await nextCoordinator.navigate(to: remaining)
-            }
-        case .modal:
-            let nextCoordinator = nextCoordinator()
-            presentPresentation = NavigationPresentation(
-                navigation: navigation,
-                coordinator: nextCoordinator)
-            
-            if let remaining {
-                await NavigationDelay.perform()
-                try await nextCoordinator.navigate(to: remaining)
+                await NavigationDelay(time: settings.delay).perform()
+                try await presentPresentation?.coordinator.navigate(to: remaining)
             }
         default:
             break
         }
         
-        await NavigationDelay.perform()
+        await NavigationDelay(time: settings.delay).perform()
     }
     
     // MARK: - Navigate Backward
@@ -220,7 +228,7 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
         
         presentPresentation = nil
         
-        await NavigationDelay.perform()
+        await NavigationDelay(time: settings.delay).perform()
     }
     
     /// Dismiss the last modal presentation.
@@ -241,7 +249,7 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
         }
         
         pushPresentation.removeLast()
-        await NavigationDelay.perform()
+        await NavigationDelay(time: settings.delay).perform()
     }
     
     /// Dismiss all push navigations of the current coordinator until the root screen is displayed.
@@ -251,7 +259,7 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
         }
         
         pushPresentation = []
-        await NavigationDelay.perform()
+        await NavigationDelay(time: settings.delay).perform()
     }
     
     /// Dismiss all push navigations of the current coordinator until the desired screen is displayed.
@@ -261,7 +269,7 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
         }
         
         pushPresentation.removeSubrange(pushPresentation.index(after: unwindIndex)..<pushPresentation.count)
-        await NavigationDelay.perform()
+        await NavigationDelay(time: settings.delay).perform()
     }
     
     /// Dismiss all push navigations of the current coordinator until the desired screen via id is displayed.
@@ -271,7 +279,7 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
         }
         
         pushPresentation.removeSubrange(pushPresentation.index(after: unwindIndex)..<pushPresentation.count)
-        await NavigationDelay.perform()
+        await NavigationDelay(time: settings.delay).perform()
     }
     
     /// Remove all navigations such that the very first screen of the application is displayed.
@@ -316,5 +324,36 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
             // At the root and the desired screen was not found
             throw .screenNotFound
         }
+    }
+    
+    // MARK: - Debug
+    
+    internal func setupDebugObserving() {
+        let _ = withObservationTracking {
+            (pushPresentation, presentPresentation)
+        } onChange: { [weak self] in
+            Task { [weak self] in
+                guard let self else { return }
+                await print(debugAllNavigations())
+                await setupDebugObserving()
+            }
+        }
+    }
+    
+    internal func debugAllNavigations() -> String {
+        var level: Int = 0
+        var output: String = "AmpleNavigation:debugAllNavigations\n"
+        var coordinator: NavigationCoordinator<Screen>? = rootCoordinator()
+        while let currentCoordinator = coordinator {
+            ([currentCoordinator.navigation] + currentCoordinator.pushPresentation).enumerated().forEach { index, navigation in
+                let prefix = index == 0 ? "\(level)" : "-"
+                output += "\(prefix) [\(navigation.method.value)] \(navigation.screen.id) \n"
+            }
+            
+            level += 1
+            coordinator = child
+        }
+        
+        return output
     }
 }

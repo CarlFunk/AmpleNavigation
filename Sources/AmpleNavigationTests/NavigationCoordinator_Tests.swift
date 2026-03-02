@@ -15,7 +15,7 @@ struct NavigationCoordinator_Tests {
     
     @Test("Verify initializer with default arguments")
     func testInitialization() async throws {
-        let coordinator = NavigationCoordinator<TestScreen>()
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home)
         
         #expect(coordinator.parent == nil)
         #expect(coordinator.settings == NavigationSettings())
@@ -28,8 +28,8 @@ struct NavigationCoordinator_Tests {
     
     @Test("Verify initializer with parent argument")
     func testInitializationWithParent() async throws {
-        let parentCoordinator = NavigationCoordinator<TestScreen>()
-        let coordinator = NavigationCoordinator<TestScreen>(parent: parentCoordinator)
+        let parentCoordinator = NavigationCoordinator<TestScreen>(root: .home)
+        let coordinator = NavigationCoordinator<TestScreen>(navigation: Navigation(screen: .checkout), parent: parentCoordinator, settings: NavigationSettings())
         
         #expect(coordinator.parent === parentCoordinator)
         #expect(coordinator.settings == NavigationSettings())
@@ -43,7 +43,7 @@ struct NavigationCoordinator_Tests {
     @Test("Verify initializer with settings argument")
     func testInitializationWithSettings() async throws {
         let settings = NavigationSettings(speed: .slow)
-        let coordinator = NavigationCoordinator<TestScreen>(settings: settings)
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home, settings: settings)
         
         #expect(coordinator.parent == nil)
         #expect(coordinator.settings == settings)
@@ -57,12 +57,12 @@ struct NavigationCoordinator_Tests {
     @Test
     func testSinglePushNavigation() async throws {
         let navigation = Navigation<TestScreen>(screen: .productList, method: .push)
-        let coordinator = NavigationCoordinator<TestScreen>()
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home)
         
         try await coordinator.navigate(to: navigation)
         
         #expect(coordinator.parent == nil)
-        #expect(coordinator.childCoordinator() == nil)
+        #expect(coordinator.child == nil)
         #expect(coordinator.isPushing == true)
         #expect(coordinator.isPushing(screen: navigation.screen) == true)
         #expect(coordinator.isPresenting == false)
@@ -70,13 +70,13 @@ struct NavigationCoordinator_Tests {
     
     @Test
     func testSingleModalNavigation() async throws {
-        let navigation = Navigation<TestScreen>(screen: .productList, method: .modal)
-        let coordinator = NavigationCoordinator<TestScreen>()
+        let navigation = Navigation<TestScreen>(screen: .productList, method: .fullScreenModal)
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home)
         
         try await coordinator.navigate(to: navigation)
         
         #expect(coordinator.parent == nil)
-        #expect(coordinator.childCoordinator() != nil)
+        #expect(coordinator.child != nil)
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: navigation.screen) == true)
@@ -84,13 +84,13 @@ struct NavigationCoordinator_Tests {
     
     @Test
     func testSingleSheetNavigation() async throws {
-        let navigation = Navigation<TestScreen>(screen: .productList, method: .sheet)
-        let coordinator = NavigationCoordinator<TestScreen>()
+        let navigation = Navigation<TestScreen>(screen: .productList, method: .sheetModal)
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home)
         
         try await coordinator.navigate(to: navigation)
         
         #expect(coordinator.parent == nil)
-        #expect(coordinator.childCoordinator() != nil)
+        #expect(coordinator.child != nil)
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: navigation.screen))
@@ -101,13 +101,13 @@ struct NavigationCoordinator_Tests {
         let firstNavigation = Navigation<TestScreen>(screen: .productList, method: .push)
         let secondNavigation = Navigation<TestScreen>(screen: .productDetail(id: "1"), method: .push)
         let navigations = [firstNavigation, secondNavigation]
-        let coordinator = NavigationCoordinator<TestScreen>()
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home)
         
         try await coordinator.navigate(to: firstNavigation)
         try await coordinator.navigate(to: secondNavigation)
         
         #expect(coordinator.parent == nil)
-        #expect(coordinator.childCoordinator() == nil)
+        #expect(coordinator.child == nil)
         #expect(coordinator.isPushing == true)
         #expect(coordinator.pushPresentation.count == navigations.count)
         #expect(coordinator.pushPresentation.map { $0.screen } == navigations.map { $0.screen })
@@ -118,24 +118,24 @@ struct NavigationCoordinator_Tests {
     
     @Test
     func testMultiModalNavigation() async throws {
-        let firstNavigation = Navigation<TestScreen>(screen: .productList, method: .modal)
-        let secondNavigation = Navigation<TestScreen>(screen: .productDetail(id: "1"), method: .modal)
-        let coordinator = NavigationCoordinator<TestScreen>()
+        let firstNavigation = Navigation<TestScreen>(screen: .productList, method: .fullScreenModal)
+        let secondNavigation = Navigation<TestScreen>(screen: .productDetail(id: "1"), method: .fullScreenModal)
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home)
         
         try await coordinator.navigate(to: firstNavigation)
         try await coordinator.navigate(to: secondNavigation)
         
-        let secondCoordinator = coordinator.childCoordinator()!
+        let secondCoordinator = coordinator.child!
         
         #expect(coordinator.parent == nil)
-        #expect(coordinator.childCoordinator() === secondCoordinator)
+        #expect(coordinator.child === secondCoordinator)
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: secondNavigation.screen))
         #expect(coordinator.presentPresentation != nil)
         
         #expect(secondCoordinator.parent === coordinator)
-        #expect(secondCoordinator.childCoordinator() == nil)
+        #expect(secondCoordinator.child == nil)
         #expect(secondCoordinator.isPushing == false)
         #expect(secondCoordinator.isPresenting == false)
         #expect(secondCoordinator.presentPresentation == nil)
@@ -143,15 +143,15 @@ struct NavigationCoordinator_Tests {
     
     @Test
     func testMultiSheetNavigation() async throws {
-        let firstNavigation = Navigation<TestScreen>(screen: .productList, method: .sheet)
-        let secondNavigation = Navigation<TestScreen>(screen: .productDetail(id: "1"), method: .sheet)
+        let firstNavigation = Navigation<TestScreen>(screen: .productList, method: .sheetModal)
+        let secondNavigation = Navigation<TestScreen>(screen: .productDetail(id: "1"), method: .sheetModal)
         
-        let coordinator = NavigationCoordinator<TestScreen>()
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home)
         try await coordinator.navigate(to: firstNavigation)
         try await coordinator.navigate(to: secondNavigation)
         
         #expect(coordinator.parent == nil)
-        #expect(coordinator.childCoordinator() != nil)
+        #expect(coordinator.child != nil)
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: secondNavigation.screen))
@@ -166,11 +166,11 @@ struct NavigationCoordinator_Tests {
             Navigation(screen: .checkoutConfirmation, method: .push)
         ]
         
-        let coordinator = NavigationCoordinator<TestScreen>()
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home)
         try await coordinator.navigate(to: flow)
         
         #expect(coordinator.parent == nil)
-        #expect(coordinator.childCoordinator() == nil)
+        #expect(coordinator.child == nil)
         #expect(coordinator.isPushing == true)
         #expect(coordinator.pushPresentation.count == flow.count)
         #expect(coordinator.pushPresentation.screens() == flow.screens())
@@ -183,16 +183,16 @@ struct NavigationCoordinator_Tests {
     @Test
     func testFlowModalNavigation() async throws {
         let flow: NavigationFlow<TestScreen> = [
-            Navigation(screen: .cart, method: .modal),
-            Navigation(screen: .checkout, method: .modal),
-            Navigation(screen: .checkoutConfirmation, method: .modal)
+            Navigation(screen: .cart, method: .fullScreenModal),
+            Navigation(screen: .checkout, method: .fullScreenModal),
+            Navigation(screen: .checkoutConfirmation, method: .fullScreenModal)
         ]
         
-        let coordinator = NavigationCoordinator<TestScreen>()
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home)
         try await coordinator.navigate(to: flow)
         
         #expect(coordinator.parent == nil)
-        #expect(coordinator.childCoordinator() != nil)
+        #expect(coordinator.child != nil)
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: flow[0].screen))
@@ -203,16 +203,16 @@ struct NavigationCoordinator_Tests {
     @Test
     func testFlowSheetNavigation() async throws {
         let flow: NavigationFlow<TestScreen> = [
-            Navigation(screen: .cart, method: .sheet),
-            Navigation(screen: .checkout, method: .sheet),
-            Navigation(screen: .checkoutConfirmation, method: .sheet)
+            Navigation(screen: .cart, method: .sheetModal),
+            Navigation(screen: .checkout, method: .sheetModal),
+            Navigation(screen: .checkoutConfirmation, method: .sheetModal)
         ]
         
-        let coordinator = NavigationCoordinator<TestScreen>()
+        let coordinator = NavigationCoordinator<TestScreen>(root: .home)
         try await coordinator.navigate(to: flow)
         
         #expect(coordinator.parent == nil)
-        #expect(coordinator.childCoordinator() != nil)
+        #expect(coordinator.child != nil)
         #expect(coordinator.isPushing == false)
         #expect(coordinator.isPresenting == true)
         #expect(coordinator.isPresenting(screen: flow[0].screen))
@@ -223,8 +223,8 @@ struct NavigationCoordinator_Tests {
     func testFlowVariedNavigation() async throws {
         let flow: NavigationFlow<TestScreen> = [
             Navigation(screen: .productList, method: .push),
-            Navigation(screen: .productDetail(id: "1"), method: .sheet),
-            Navigation(screen: .cart, method: .modal),
+            Navigation(screen: .productDetail(id: "1"), method: .sheetModal),
+            Navigation(screen: .cart, method: .fullScreenModal),
             Navigation(screen: .checkout, method: .push),
             Navigation(screen: .checkoutConfirmation, method: .push)
         ]
@@ -233,13 +233,13 @@ struct NavigationCoordinator_Tests {
         var secondCoordinator: NavigationCoordinator<TestScreen>!
         var thirdCoordinator: NavigationCoordinator<TestScreen>!
         
-        coordinator = NavigationCoordinator<TestScreen>()
+        coordinator = NavigationCoordinator<TestScreen>(root: .home)
         try await coordinator.navigate(to: flow)
-        secondCoordinator = coordinator.childCoordinator()!
-        thirdCoordinator = secondCoordinator.childCoordinator()!
+        secondCoordinator = coordinator.child!
+        thirdCoordinator = secondCoordinator.child!
         
         #expect(coordinator.parent == nil)
-        #expect(coordinator.childCoordinator() != nil)
+        #expect(coordinator.child != nil)
         #expect(coordinator.isPushing == true)
         #expect(coordinator.isPushing(screen: flow[0].screen))
         #expect(coordinator.isPresenting == true)
@@ -247,14 +247,14 @@ struct NavigationCoordinator_Tests {
         #expect(coordinator.presentPresentation != nil)
         
         #expect(secondCoordinator.parent != nil)
-        #expect(secondCoordinator.childCoordinator() != nil)
+        #expect(secondCoordinator.child != nil)
         #expect(secondCoordinator.isPushing == false)
         #expect(secondCoordinator.isPresenting)
         #expect(secondCoordinator.isPresenting(screen: flow[2].screen))
         #expect(secondCoordinator.presentPresentation != nil)
         
         #expect(thirdCoordinator.parent != nil)
-        #expect(thirdCoordinator.childCoordinator() == nil)
+        #expect(thirdCoordinator.child == nil)
         #expect(thirdCoordinator.isPushing)
         #expect(thirdCoordinator.isPushing(screen: flow[3].screen))
         #expect(thirdCoordinator.isPushing(screen: flow[4].screen))

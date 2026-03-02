@@ -13,12 +13,12 @@ import Testing
 struct NavigationDelay_Tests {
     @Test
     func verifyTime() async throws {
-        #expect(NavigationDelay.time == 0.625)
+        #expect(NavigationDelay().time == 0.625)
     }
     
     @Test
     func testPerform() async throws {
-        await NavigationDelay.perform()
+        await NavigationDelay(time: 0.625).perform()
         
         #expect(true)
     }

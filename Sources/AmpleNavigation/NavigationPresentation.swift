@@ -1,5 +1,5 @@
 //
-//  NavigationModalPresentation.swift
+//  NavigationPresentation.swift
 //  AmpleNavigation
 //
 //  Created by Carl Funk on 3/30/23.
@@ -8,7 +8,7 @@
 
 import Foundation
 
-/// A fullscreen modal presentation to navigate to.
+/// A modal presentation to navigate to.
 internal final class NavigationPresentation<Screen: NavigationScreen>: Equatable, Identifiable {
     /// Unique identifier of the specific full screen modal navigation.
     let id: UUID
@@ -29,12 +29,12 @@ internal final class NavigationPresentation<Screen: NavigationScreen>: Equatable
         self.coordinator = coordinator
     }
     
-    var isSheet: Bool {
-        navigation.method == .sheet
+    var isSheetModal: Bool {
+        navigation.method == .sheetModal
     }
     
-    var isModal: Bool {
-        navigation.method == .modal
+    var isFullScreenModal: Bool {
+        navigation.method == .fullScreenModal
     }
     
     static func == (lhs: NavigationPresentation<Screen>, rhs: NavigationPresentation<Screen>) -> Bool {
