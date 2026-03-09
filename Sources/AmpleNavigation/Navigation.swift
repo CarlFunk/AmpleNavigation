@@ -11,13 +11,13 @@ public final class Navigation<Screen: NavigationScreen>: Equatable, Hashable {
     public typealias Method = NavigationMethod
     
     /// The specific screen that should be navigated to.
-    public var screen: Screen
+    public let screen: Screen
     
     /// The specific method of navigation to use to reach the designated screen.
-    public var method: Method
+    public let method: Method
     
     /// The closure to execute with the navigation in undone
-    public var onDismiss: NavigationDismiss
+    public let onDismiss: NavigationDismiss
     
     public init(
         screen: Screen,

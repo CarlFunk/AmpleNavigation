@@ -15,7 +15,7 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
     
     /// The navigation that caused the creation of the current coordinator. The
     /// most root navigation of all coordinators will always have a method of `.none`.
-    internal var navigation: Navigation<Screen>
+    internal let navigation: Navigation<Screen>
     
     /// The push navigations managed by this coordinator.
     internal var pushPresentation: NavigationFlow<Screen>
@@ -285,11 +285,12 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
     /// Remove all navigations such that the very first screen of the application is displayed.
     public func unwindToRoot() async throws(NavigationFailure) {
         let root = rootCoordinator()
-        
+
         if root.isPresenting {
             try await root.dismissLast()
-            try await root.popAll()
-        } else {
+        }
+
+        if root.isPushing {
             try await root.popAll()
         }
     }
@@ -297,11 +298,18 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
     /// Remove all navigations backwards until the screen requested via id is displayed.
     public func unwindTo(screen: Screen) async throws(NavigationFailure) {
         if isPushing(screen: screen) {
-            try await dismiss()
+            if isPresenting {
+                try await dismiss()
+            }
             try await popTo(screen: screen)
         } else if let parent, parent.isPresenting(screen: screen) {
-            try await dismiss()
-            try await popAll()
+            if isPresenting {
+                try await dismiss()
+            }
+
+            if isPushing {
+                try await popAll()
+            }
         } else if let parent {
             try await parent.unwindTo(screen: screen)
         } else {
@@ -313,11 +321,18 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
     /// Remove all navigations backwards until the screen requested in displayed.
     public func unwindTo(id: Screen.ID) async throws(NavigationFailure) {
         if isPushing(id: id) {
-            try await dismiss()
+            if isPresenting {
+                try await dismiss()
+            }
             try await popTo(id: id)
         } else if let parent, parent.isPresenting(id: id) {
-            try await dismiss()
-            try await popAll()
+            if isPresenting {
+                try await dismiss()
+            }
+
+            if isPushing {
+                try await popAll()
+            }
         } else if let parent {
             try await parent.unwindTo(id: id)
         } else {
@@ -351,7 +366,7 @@ public final class NavigationCoordinator<Screen: NavigationScreen> {
             }
             
             level += 1
-            coordinator = child
+            coordinator = currentCoordinator.child
         }
         
         return output
